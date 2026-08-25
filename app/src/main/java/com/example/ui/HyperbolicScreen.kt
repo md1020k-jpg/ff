@@ -758,12 +758,8 @@ private fun PlotTabView(
             onToggleFunction = { viewModel.toggleFunction(it) }
         )
 
-        // Tabbed Tools Section (Point Inspector, Catenary Physics Simulator, Calculus Reference)
-        SidebarTabbedPanel(
-            uiState = uiState,
-            viewModel = viewModel,
-            modifier = Modifier.fillMaxWidth()
-        )
+        // Parameter Controls Card
+        ParametersCard(uiState = uiState, viewModel = viewModel)
 
         Spacer(modifier = Modifier.height(16.dp))
     }

@@ -1,4 +1,6 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.io.File
+import java.util.Base64
 
 plugins {
   alias(libs.plugins.android.application)
@@ -9,6 +11,57 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
+// Ensure debug.keystore exists before build or task execution
+fun ensureDebugKeystoreFile(): File {
+  val userHomeDir = System.getProperty("user.home") ?: ""
+  val userHomeKeystore = file("$userHomeDir/.android/debug.keystore")
+  val rootKeystore = rootProject.file("debug.keystore")
+  val base64Keystore = rootProject.file("debug.keystore.base64")
+
+  if (rootKeystore.exists() && rootKeystore.length() > 0) {
+    return rootKeystore
+  }
+
+  if (userHomeKeystore.exists() && userHomeKeystore.length() > 0) {
+    return userHomeKeystore
+  }
+
+  if (base64Keystore.exists() && base64Keystore.length() > 0) {
+    try {
+      val base64Text = base64Keystore.readText().trim()
+      val decodedBytes = Base64.getDecoder().decode(base64Text)
+      rootKeystore.writeBytes(decodedBytes)
+      try {
+        userHomeKeystore.parentFile?.mkdirs()
+        userHomeKeystore.writeBytes(decodedBytes)
+      } catch (_: Exception) {}
+      return rootKeystore
+    } catch (_: Exception) {}
+  }
+
+  // Generate temporary debug keystore using keytool if not found
+  try {
+    val targetKeystore = if (userHomeKeystore.parentFile?.exists() == true || userHomeKeystore.parentFile?.mkdirs() == true) userHomeKeystore else rootKeystore
+    val process = ProcessBuilder(
+      "keytool", "-genkeypair",
+      "-alias", "androiddebugkey",
+      "-keypass", "android",
+      "-keystore", targetKeystore.absolutePath,
+      "-storepass", "android",
+      "-dname", "CN=Android Debug,O=Android,C=US",
+      "-keyalg", "RSA",
+      "-keysize", "2048",
+      "-validity", "10000"
+    ).start()
+    process.waitFor()
+    if (targetKeystore.exists()) {
+      return targetKeystore
+    }
+  } catch (_: Exception) {}
+
+  return userHomeKeystore
+}
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -17,13 +70,20 @@ android {
     applicationId = "com.aistudio.hyperbolicexplorer.hecmos"
     minSdk = 24
     targetSdk = 36
-    versionCode = 3
-    versionName = "1.2.0"
+    versionCode = 4
+    versionName = "1.2.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
   signingConfigs {
+    getByName("debug") {
+      val keystore = ensureDebugKeystoreFile()
+      storeFile = keystore
+      storePassword = "android"
+      keyAlias = "androiddebugkey"
+      keyPassword = "android"
+    }
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
@@ -41,7 +101,7 @@ android {
       signingConfig = signingConfigs.getByName("release")
     }
     debug { 
-      // Rely on the default Android debug signing config
+      signingConfig = signingConfigs.getByName("debug")
     }
   }
 
@@ -122,3 +182,65 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
 }
+
+// Task to automatically generate or restore debug.keystore using keytool if missing
+abstract class GenerateDebugKeystoreTask : DefaultTask() {
+  @get:OutputFile
+  abstract val keystoreFile: RegularFileProperty
+
+  @TaskAction
+  fun generate() {
+    val target = keystoreFile.get().asFile
+    val userHomeDir = System.getProperty("user.home") ?: ""
+    val userHomeKeystore = File("$userHomeDir/.android/debug.keystore")
+
+    if ((target.exists() && target.length() > 0) || (userHomeKeystore.exists() && userHomeKeystore.length() > 0)) {
+      return
+    }
+
+    val base64File = File(target.parentFile, "debug.keystore.base64")
+    if (base64File.exists() && base64File.length() > 0) {
+      try {
+        val base64Text = base64File.readText().trim()
+        val decodedBytes = Base64.getDecoder().decode(base64Text)
+        target.writeBytes(decodedBytes)
+        userHomeKeystore.parentFile?.mkdirs()
+        userHomeKeystore.writeBytes(decodedBytes)
+        return
+      } catch (_: Exception) {}
+    }
+
+    try {
+      target.parentFile?.mkdirs()
+      ProcessBuilder(
+        "keytool", "-genkeypair",
+        "-alias", "androiddebugkey",
+        "-keypass", "android",
+        "-keystore", target.absolutePath,
+        "-storepass", "android",
+        "-dname", "CN=Android Debug,O=Android,C=US",
+        "-keyalg", "RSA",
+        "-keysize", "2048",
+        "-validity", "10000"
+      ).start().waitFor()
+
+      if (target.exists() && target.length() > 0) {
+        userHomeKeystore.parentFile?.mkdirs()
+        target.copyTo(userHomeKeystore, overwrite = true)
+      }
+    } catch (_: Exception) {}
+  }
+}
+
+val generateDebugKeystore = tasks.register<GenerateDebugKeystoreTask>("generateDebugKeystore") {
+  description = "Automatically generates a debug.keystore file using keytool if missing before validateSigningDebug"
+  keystoreFile.set(rootProject.file("debug.keystore"))
+}
+
+tasks.configureEach {
+  if (name == "validateSigningDebug" || name == "preDebugBuild" || name.contains("packageDebug", ignoreCase = true)) {
+    dependsOn(generateDebugKeystore)
+  }
+}
+
+
