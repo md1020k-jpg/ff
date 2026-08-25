@@ -205,8 +205,8 @@
     .chip {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.45rem 0.9rem;
+      gap: 0.4rem;
+      padding: 0.48rem 0.95rem;
       border-radius: 9999px;
       font-size: 0.85rem;
       font-weight: 600;
@@ -214,21 +214,28 @@
       color: var(--text-muted);
       border: 1px solid var(--surface-border);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
       white-space: nowrap;
       user-select: none;
+      transform-origin: center center;
     }
 
     .chip:hover {
       color: var(--text);
       border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .chip:active {
+      transform: scale(0.96);
     }
 
     .chip.active {
       background: var(--primary);
       color: #0b0f19;
       border-color: var(--primary);
-      box-shadow: 0 4px 12px var(--primary-glow);
+      box-shadow: 0 4px 14px var(--primary-glow);
+      transform: scale(1.05);
     }
 
     .chip-indicator {
@@ -236,6 +243,17 @@
       height: 8px;
       border-radius: 50%;
       background: currentColor;
+      transition: transform 0.25s ease, background-color 0.25s ease;
+    }
+
+    .chip.active .chip-indicator {
+      transform: scale(1.25);
+      animation: chipPulse 1.8s infinite ease-in-out;
+    }
+
+    @keyframes chipPulse {
+      0%, 100% { opacity: 1; transform: scale(1.25); }
+      50% { opacity: 0.55; transform: scale(0.9); }
     }
 
     /* Canvas Container */
@@ -541,7 +559,15 @@
             </label>
           </div>
           <div class="toggle-group">
-            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem;" id="resetViewBtn">Reset Origin</button>
+            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;" id="zoomInBtn" title="Zoom In">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <span>Zoom In</span>
+            </button>
+            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;" id="zoomOutBtn" title="Zoom Out">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <span>Zoom Out</span>
+            </button>
+            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem;" id="resetViewBtn">Reset View</button>
           </div>
         </div>
       </div>
@@ -723,6 +749,12 @@
 
       // State
       let currentFunction = 'cosh';
+      let prevFunction = 'cosh';
+      let transitionProgress = 1.0;
+      let animFrameId = null;
+      let animStartTime = null;
+      const ANIM_DURATION = 360; // ms for fluid animation
+
       let showTangent = true;
       let showParabola = false;
       let showAsymptotes = true;
@@ -733,6 +765,31 @@
       let originX = 0;
       let originY = 0;
       let cursorX = 1.0; // math coordinate
+
+      // Color and Easing Utilities
+      function hexToRgb(hex) {
+        const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        const expanded = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(expanded);
+        return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        } : { r: 56, g: 189, b: 248 };
+      }
+
+      function interpolateColor(color1, color2, factor) {
+        const c1 = hexToRgb(color1);
+        const c2 = hexToRgb(color2);
+        const r = Math.round(c1.r + (c2.r - c1.r) * factor);
+        const g = Math.round(c1.g + (c2.g - c1.g) * factor);
+        const b = Math.round(c1.b + (c2.b - c1.b) * factor);
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
 
       // Function Definitions & Derivatives
       const functions = {
@@ -862,20 +919,42 @@
         ctx.lineTo(originX, height);
         ctx.stroke();
 
-        // Asymptotes
+        const t = easeInOutCubic(Math.max(0, Math.min(1, transitionProgress)));
+        const prevFn = functions[prevFunction] || functions.cosh;
+        const currFn = functions[currentFunction] || functions.cosh;
+
+        // Asymptotes with smooth opacity fade
         if (showAsymptotes) {
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
           ctx.lineWidth = 1.5;
           ctx.setLineDash([6, 6]);
 
-          if (currentFunction === 'tanh' || currentFunction === 'coth') {
+          const prevHasHoriz = (prevFunction === 'tanh' || prevFunction === 'coth');
+          const currHasHoriz = (currentFunction === 'tanh' || currentFunction === 'coth');
+          let horizAlpha = 0;
+          if (prevHasHoriz && currHasHoriz) horizAlpha = 0.4;
+          else if (prevHasHoriz) horizAlpha = 0.4 * (1 - t);
+          else if (currHasHoriz) horizAlpha = 0.4 * t;
+
+          if (horizAlpha > 0.01) {
+            ctx.strokeStyle = `rgba(148, 163, 184, ${horizAlpha})`;
             const y1 = toScreenY(1);
             const ym1 = toScreenY(-1);
             ctx.beginPath(); ctx.moveTo(0, y1); ctx.lineTo(width, y1); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, ym1); ctx.lineTo(width, ym1); ctx.stroke();
-          } else if (currentFunction === 'csch' || currentFunction === 'coth') {
+          }
+
+          const prevHasVert = (prevFunction === 'csch' || prevFunction === 'coth');
+          const currHasVert = (currentFunction === 'csch' || currentFunction === 'coth');
+          let vertAlpha = 0;
+          if (prevHasVert && currHasVert) vertAlpha = 0.4;
+          else if (prevHasVert) vertAlpha = 0.4 * (1 - t);
+          else if (currHasVert) vertAlpha = 0.4 * t;
+
+          if (vertAlpha > 0.01) {
+            ctx.strokeStyle = `rgba(148, 163, 184, ${vertAlpha})`;
             ctx.beginPath(); ctx.moveTo(originX, 0); ctx.lineTo(originX, height); ctx.stroke();
           }
+
           ctx.setLineDash([]);
         }
 
@@ -895,11 +974,14 @@
           ctx.stroke();
         }
 
-        // Active Curve Plot
-        const fn = functions[currentFunction];
-        ctx.strokeStyle = fn.color;
+        // Active Curve Plot (Interpolated Morph Transition)
+        const activeColor = (transitionProgress < 1.0 && prevFunction !== currentFunction)
+          ? interpolateColor(prevFn.color, currFn.color, t)
+          : currFn.color;
+
+        ctx.strokeStyle = activeColor;
         ctx.lineWidth = 3.5;
-        ctx.shadowColor = fn.color;
+        ctx.shadowColor = activeColor;
         ctx.shadowBlur = 12;
 
         ctx.beginPath();
@@ -908,9 +990,27 @@
 
         for (let px = 0; px <= width; px += step) {
           const mx = toMathX(px);
-          const my = fn.eval(mx);
+          let my;
+          if (transitionProgress >= 1.0 || prevFunction === currentFunction) {
+            my = currFn.eval(mx);
+          } else {
+            const y1 = prevFn.eval(mx);
+            const y2 = currFn.eval(mx);
+            const valid1 = !isNaN(y1) && isFinite(y1) && Math.abs(y1) < 60;
+            const valid2 = !isNaN(y2) && isFinite(y2) && Math.abs(y2) < 60;
 
-          if (!isNaN(my) && isFinite(my) && Math.abs(my) < 50) {
+            if (valid1 && valid2) {
+              my = y1 + (y2 - y1) * t;
+            } else if (valid1 && !valid2) {
+              my = (t < 0.6) ? y1 : NaN;
+            } else if (!valid1 && valid2) {
+              my = (t > 0.4) ? y2 : NaN;
+            } else {
+              my = NaN;
+            }
+          }
+
+          if (!isNaN(my) && isFinite(my) && Math.abs(my) < 60) {
             const py = toScreenY(my);
             if (!isDrawing) {
               ctx.moveTo(px, py);
@@ -926,8 +1026,23 @@
         ctx.shadowBlur = 0; // reset glow
 
         // Crosshair & Tangent Line Calculations
-        const cy = fn.eval(cursorX);
-        const slope = fn.deriv(cursorX);
+        let cy, slope;
+        if (transitionProgress >= 1.0 || prevFunction === currentFunction) {
+          cy = currFn.eval(cursorX);
+          slope = currFn.deriv(cursorX);
+        } else {
+          const cy1 = prevFn.eval(cursorX);
+          const cy2 = currFn.eval(cursorX);
+          const slope1 = prevFn.deriv(cursorX);
+          const slope2 = currFn.deriv(cursorX);
+          const validC1 = !isNaN(cy1) && isFinite(cy1);
+          const validC2 = !isNaN(cy2) && isFinite(cy2);
+          const validS1 = !isNaN(slope1) && isFinite(slope1);
+          const validS2 = !isNaN(slope2) && isFinite(slope2);
+
+          cy = (validC1 && validC2) ? (cy1 + (cy2 - cy1) * t) : (t >= 0.5 ? cy2 : cy1);
+          slope = (validS1 && validS2) ? (slope1 + (slope2 - slope1) * t) : (t >= 0.5 ? slope2 : slope1);
+        }
 
         if (!isNaN(cy) && isFinite(cy)) {
           const scx = toScreenX(cursorX);
@@ -981,7 +1096,7 @@
           ctx.arc(scx, scy, 5, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.strokeStyle = fn.color;
+          ctx.strokeStyle = activeColor;
           ctx.lineWidth = 2.5;
           ctx.beginPath();
           ctx.arc(scx, scy, 9, 0, Math.PI * 2);
@@ -1027,13 +1142,51 @@
         handlePointerMove(e);
       }, { passive: false });
 
-      // Chip Selector
+      // Smooth Switch Function Handler with Animation Loop
+      function switchFunction(newFuncKey) {
+        if (!functions[newFuncKey]) return;
+        if (newFuncKey === currentFunction && transitionProgress >= 1.0) return;
+
+        // Visual chip active state with instant feedback
+        document.querySelectorAll('#functionChips .chip').forEach(c => {
+          if (c.dataset.func === newFuncKey) {
+            c.classList.add('active');
+          } else {
+            c.classList.remove('active');
+          }
+        });
+
+        if (animFrameId) {
+          cancelAnimationFrame(animFrameId);
+          animFrameId = null;
+        }
+
+        prevFunction = currentFunction;
+        currentFunction = newFuncKey;
+        transitionProgress = 0.0;
+        animStartTime = performance.now();
+
+        function stepAnimation(now) {
+          const elapsed = now - animStartTime;
+          transitionProgress = Math.min(1.0, elapsed / ANIM_DURATION);
+          draw();
+
+          if (transitionProgress < 1.0) {
+            animFrameId = requestAnimationFrame(stepAnimation);
+          } else {
+            animFrameId = null;
+            transitionProgress = 1.0;
+            draw();
+          }
+        }
+
+        animFrameId = requestAnimationFrame(stepAnimation);
+      }
+
+      // Chip Selector Click Events
       document.querySelectorAll('#functionChips .chip').forEach(chip => {
         chip.addEventListener('click', () => {
-          document.querySelectorAll('#functionChips .chip').forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          currentFunction = chip.dataset.func;
-          draw();
+          switchFunction(chip.dataset.func);
         });
       });
 
@@ -1054,10 +1207,40 @@
         showSlopeTriangle = e.target.checked;
         draw();
       });
+      // Toolbar Zoom & Reset Controls
+      const zoomInBtn = document.getElementById('zoomInBtn');
+      const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+          scale = Math.min(300, scale * 1.25);
+          draw();
+        });
+      }
+
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+          scale = Math.max(15, scale / 1.25);
+          draw();
+        });
+      }
+
       document.getElementById('resetViewBtn').addEventListener('click', () => {
+        scale = 50;
         cursorX = 0.0;
         draw();
       });
+
+      // Mouse Wheel Zoom on Canvas
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          scale = Math.min(300, scale * 1.15);
+        } else {
+          scale = Math.max(15, scale / 1.15);
+        }
+        draw();
+      }, { passive: false });
 
       // Catenary Simulation Logic
       const paramASlider = document.getElementById('paramASlider');

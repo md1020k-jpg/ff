@@ -42,16 +42,8 @@ jobs:
           gradle-version: '9.3.1'
           validate-wrappers: false
 
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x gradlew || true
-
       - name: Build Android APK
-        run: |
-          if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug --no-daemon --stacktrace
-          else
-            gradle assembleDebug --no-daemon --stacktrace
-          fi
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Package & Prepare Release APKs
         run: |
