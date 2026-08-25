@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hyperbolic Explorer — Interactive Hyperbolic Functions & Calculus</title>
-  <meta name="description" content="Explore hyperbolic functions (cosh, sinh, tanh, sech, csch, coth), tangent lines, derivatives, catenary physics, and download the Android APK." />
+  <title>Hyperbolic Explorer — Interactive Hyperbolic Functions, Calculus & Catenary Engine</title>
+  <meta name="description" content="Explore hyperbolic functions (cosh, sinh, tanh, sech, csch, coth), tangent lines, derivatives, area integrals, catenary physics, and download the Android APK." />
   
   <!-- Google Fonts & KaTeX for LaTeX Math -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,16 +16,17 @@
 
   <style>
     :root {
-      --bg: #0b0f19;
-      --surface: #131b2e;
-      --surface-variant: #1c2742;
-      --surface-border: #28375a;
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-variant: #1a233a;
+      --surface-border: #263554;
       --primary: #818cf8;
       --primary-variant: #6366f1;
-      --primary-glow: rgba(129, 140, 248, 0.25);
+      --primary-glow: rgba(129, 140, 248, 0.3);
       --secondary: #38bdf8;
+      --secondary-glow: rgba(56, 189, 248, 0.25);
       --accent: #f43f5e;
-      --accent-glow: rgba(244, 63, 94, 0.25);
+      --accent-glow: rgba(244, 63, 94, 0.3);
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --cosh-color: #38bdf8;
@@ -34,12 +35,14 @@
       --sech-color: #fbbf24;
       --csch-color: #a855f7;
       --coth-color: #ec4899;
+      --derivative-color: #a78bfa;
       --parabola-color: #94a3b8;
       --tangent-color: #f59e0b;
+      --integral-color: rgba(99, 102, 241, 0.22);
       --radius-sm: 8px;
       --radius-md: 14px;
       --radius-lg: 20px;
-      --shadow: 0 10px 30px -10px rgba(0,0,0,0.6);
+      --shadow: 0 10px 30px -10px rgba(0,0,0,0.7);
     }
 
     * {
@@ -59,8 +62,8 @@
 
     /* Top Navigation Header */
     header {
-      background: rgba(19, 27, 46, 0.85);
-      backdrop-filter: blur(12px);
+      background: rgba(17, 24, 39, 0.88);
+      backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--surface-border);
       position: sticky;
       top: 0;
@@ -80,22 +83,35 @@
     }
 
     .brand-icon {
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       border-radius: var(--radius-sm);
       display: grid;
       place-items: center;
       font-weight: 800;
-      font-size: 1.2rem;
-      color: #0b0f19;
-      box-shadow: 0 4px 12px var(--primary-glow);
+      font-size: 1.25rem;
+      color: #090d16;
+      box-shadow: 0 4px 14px var(--primary-glow);
     }
 
     .brand-title h1 {
       font-size: 1.15rem;
       font-weight: 700;
       letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-version {
+      background: rgba(129, 140, 248, 0.15);
+      color: var(--primary);
+      border: 1px solid var(--primary-glow);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
     }
 
     .brand-title p {
@@ -118,7 +134,7 @@
       font-size: 0.875rem;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
       border: 1px solid transparent;
     }
@@ -131,7 +147,7 @@
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(129, 140, 248, 0.4);
+      box-shadow: 0 6px 22px rgba(129, 140, 248, 0.45);
     }
 
     .btn-secondary {
@@ -151,11 +167,11 @@
       margin: 0 auto;
       padding: 1.5rem;
       display: grid;
-      grid-template-columns: 1fr 380px;
+      grid-template-columns: 1fr 390px;
       gap: 1.5rem;
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1080px) {
       .app-container {
         grid-template-columns: 1fr;
       }
@@ -165,7 +181,7 @@
     .plot-section {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.25rem;
     }
 
     .card {
@@ -196,9 +212,9 @@
     /* Function Selection Chips */
     .chip-container {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.45rem;
       overflow-x: auto;
-      padding-bottom: 0.25rem;
+      padding-bottom: 0.35rem;
       scrollbar-width: thin;
     }
 
@@ -206,7 +222,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.48rem 0.95rem;
+      padding: 0.45rem 0.9rem;
       border-radius: 9999px;
       font-size: 0.85rem;
       font-weight: 600;
@@ -214,10 +230,9 @@
       color: var(--text-muted);
       border: 1px solid var(--surface-border);
       cursor: pointer;
-      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
       white-space: nowrap;
       user-select: none;
-      transform-origin: center center;
     }
 
     .chip:hover {
@@ -226,16 +241,13 @@
       transform: translateY(-1px);
     }
 
-    .chip:active {
-      transform: scale(0.96);
-    }
-
     .chip.active {
       background: var(--primary);
-      color: #0b0f19;
+      color: #090d16;
       border-color: var(--primary);
       box-shadow: 0 4px 14px var(--primary-glow);
-      transform: scale(1.05);
+      transform: scale(1.04);
+      font-weight: 700;
     }
 
     .chip-indicator {
@@ -243,30 +255,70 @@
       height: 8px;
       border-radius: 50%;
       background: currentColor;
-      transition: transform 0.25s ease, background-color 0.25s ease;
     }
 
     .chip.active .chip-indicator {
-      transform: scale(1.25);
       animation: chipPulse 1.8s infinite ease-in-out;
     }
 
     @keyframes chipPulse {
-      0%, 100% { opacity: 1; transform: scale(1.25); }
-      50% { opacity: 0.55; transform: scale(0.9); }
+      0%, 100% { opacity: 1; transform: scale(1.2); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* Quick Preset Points */
+    .preset-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .preset-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+    }
+
+    .preset-pill {
+      background: var(--surface-variant);
+      border: 1px solid var(--surface-border);
+      color: var(--text);
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .preset-pill:hover {
+      background: var(--primary);
+      color: #090d16;
+      border-color: var(--primary);
     }
 
     /* Canvas Container */
     .canvas-wrapper {
       position: relative;
       width: 100%;
-      height: 520px;
-      background: #090d16;
+      height: 540px;
+      background: #080c14;
       border-radius: var(--radius-md);
       overflow: hidden;
       border: 1px solid var(--surface-border);
       touch-action: none;
       cursor: crosshair;
+    }
+
+    .canvas-wrapper.pan-mode {
+      cursor: grab;
+    }
+    .canvas-wrapper.pan-mode:active {
+      cursor: grabbing;
     }
 
     canvas {
@@ -278,22 +330,23 @@
     /* Floating HUD overlay */
     .canvas-hud {
       position: absolute;
-      top: 12px;
-      left: 12px;
-      background: rgba(19, 27, 46, 0.85);
-      backdrop-filter: blur(8px);
+      top: 14px;
+      left: 14px;
+      background: rgba(17, 24, 39, 0.88);
+      backdrop-filter: blur(10px);
       border: 1px solid var(--surface-border);
       border-radius: var(--radius-sm);
-      padding: 0.6rem 0.9rem;
+      padding: 0.65rem 0.95rem;
       font-size: 0.8rem;
       display: flex;
       flex-direction: column;
-      gap: 0.2rem;
+      gap: 0.25rem;
       pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     }
 
     .hud-title {
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 700;
       color: var(--primary);
       text-transform: uppercase;
@@ -312,6 +365,48 @@
       font-size: 0.75rem;
     }
 
+    .hud-integral {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--secondary);
+      font-size: 0.75rem;
+    }
+
+    /* Floating Canvas Controls Overlay (Top Right) */
+    .canvas-actions {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 0.4rem;
+      z-index: 10;
+    }
+
+    .icon-btn {
+      background: rgba(26, 35, 58, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--surface-border);
+      color: var(--text);
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--primary);
+      color: #090d16;
+      border-color: var(--primary);
+    }
+
+    .icon-btn.active {
+      background: var(--primary);
+      color: #090d16;
+      border-color: var(--primary);
+    }
+
     /* Plot Controls Toolbar */
     .plot-toolbar {
       display: flex;
@@ -319,13 +414,13 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 0.75rem;
-      margin-top: 0.75rem;
+      margin-top: 0.85rem;
     }
 
     .toggle-group {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
       flex-wrap: wrap;
     }
 
@@ -333,7 +428,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.45rem;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
       cursor: pointer;
       user-select: none;
@@ -350,6 +445,15 @@
       color: var(--text);
     }
 
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
     /* Sidebar Panels */
     .sidebar {
       display: flex;
@@ -357,12 +461,51 @@
       gap: 1.25rem;
     }
 
+    /* Tab navigation for sidebar */
+    .tab-bar {
+      display: flex;
+      background: var(--surface-variant);
+      border-radius: var(--radius-sm);
+      padding: 0.25rem;
+      gap: 0.25rem;
+      border: 1px solid var(--surface-border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 0.45rem 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
     /* Inspector Card */
     .inspector-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 0.75rem;
-      margin-top: 0.75rem;
     }
 
     .stat-box {
@@ -394,9 +537,9 @@
       border: 1px solid var(--primary-glow);
       border-radius: var(--radius-sm);
       padding: 0.6rem 0.8rem;
-      margin-top: 0.75rem;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       color: var(--primary);
+      font-family: 'JetBrains Mono', monospace;
     }
 
     /* Calculus Section */
@@ -404,7 +547,6 @@
       background: var(--surface-variant);
       border-radius: var(--radius-sm);
       padding: 0.75rem 1rem;
-      margin-bottom: 0.6rem;
       border: 1px solid var(--surface-border);
     }
 
@@ -412,7 +554,7 @@
       font-size: 0.85rem;
       font-weight: 700;
       color: var(--secondary);
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.35rem;
     }
 
     /* Catenary Physics Interactive Section */
@@ -442,40 +584,113 @@
       cursor: pointer;
     }
 
+    /* Preset buttons for catenary */
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .preset-button {
+      background: var(--surface-variant);
+      border: 1px solid var(--surface-border);
+      color: var(--text);
+      padding: 0.45rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .preset-button:hover {
+      border-color: var(--secondary);
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--secondary);
+    }
+
     /* Release APK Download Banner */
     .download-banner {
       background: linear-gradient(135deg, #1e1b4b, #2e1065);
       border: 1px solid #6366f1;
       border-radius: var(--radius-lg);
-      padding: 1.5rem;
+      padding: 1.75rem;
       margin-top: 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 1.25rem;
     }
 
     .download-text h3 {
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       font-weight: 700;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .download-text p {
-      font-size: 0.85rem;
+      font-size: 0.875rem;
       color: #c7d2fe;
+      max-width: 600px;
+    }
+
+    .download-btns {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* Features Grid */
+    .features-section {
+      max-width: 1440px;
+      margin: 2rem auto 0;
+      padding: 0 1.5rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+    }
+
+    .feature-card h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feature-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
     /* Footer */
     footer {
       border-top: 1px solid var(--surface-border);
-      padding: 2rem 1.5rem;
+      padding: 2.5rem 1.5rem;
       text-align: center;
       font-size: 0.85rem;
       color: var(--text-muted);
-      margin-top: 3rem;
-      background: rgba(19, 27, 46, 0.5);
+      margin-top: 3.5rem;
+      background: rgba(17, 24, 39, 0.6);
     }
 
     footer a {
@@ -491,14 +706,14 @@
     <a href="#" class="brand">
       <div class="brand-icon">∿</div>
       <div class="brand-title">
-        <h1>Hyperbolic Explorer</h1>
-        <p>Mathematical Visualizer & Calculus Engine</p>
+        <h1>Hyperbolic Explorer <span class="badge-version">v1.1.0</span></h1>
+        <p>Mathematical Visualizer, Calculus Engine & Catenary Physics</p>
       </div>
     </a>
     <div class="header-actions">
       <a href="https://github.com/md1020k-jpg/Hyper-bola-1/releases" target="_blank" class="btn btn-primary">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Android APK
+        Download v1.1.0 APK
       </a>
       <a href="https://github.com/md1020k-jpg/Hyper-bola-1" target="_blank" class="btn btn-secondary">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -515,7 +730,8 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <span>Function Grapher</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12s1.5-4 4-4 4 4 4 4"/></svg>
+            <span>Interactive Graph Canvas</span>
           </div>
           <!-- Function Tabs -->
           <div class="chip-container" id="functionChips">
@@ -528,13 +744,40 @@
           </div>
         </div>
 
+        <!-- Quick Jump Preset Points -->
+        <div class="preset-bar">
+          <span class="preset-label">Jump to x:</span>
+          <button class="preset-pill" data-x="-2.0">-2.00</button>
+          <button class="preset-pill" data-x="-1.0">-1.00</button>
+          <button class="preset-pill" data-x="0.0">0.00 (Vertex)</button>
+          <button class="preset-pill" data-x="1.0">1.00</button>
+          <button class="preset-pill" data-x="2.0">2.00</button>
+          <button class="preset-pill" data-x="0.88137">ln(1+√2)</button>
+        </div>
+
         <!-- Canvas Visualizer -->
         <div class="canvas-wrapper" id="canvasContainer">
           <canvas id="plotCanvas"></canvas>
+          
+          <!-- Top Left HUD -->
           <div class="canvas-hud" id="hud">
             <div class="hud-title" id="hudFunction">f(x) = cosh(x)</div>
-            <div class="hud-coords" id="hudCoords">x: 0.00, y: 1.00</div>
-            <div class="hud-slope" id="hudSlope">Slope dy/dx: 0.00 (θ = 0.0°)</div>
+            <div class="hud-coords" id="hudCoords">x: 0.00, y: 1.000</div>
+            <div class="hud-slope" id="hudSlope">Slope dy/dx: 0.000 (θ = 0.0°)</div>
+            <div class="hud-integral" id="hudIntegral">∫₀ˣ f(t)dt: 0.000</div>
+          </div>
+
+          <!-- Top Right Canvas Actions -->
+          <div class="canvas-actions">
+            <button class="icon-btn" id="playAnimationBtn" title="Play/Pause Coordinate Sweep Animation">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <button class="icon-btn" id="panModeBtn" title="Toggle Pan Drag Mode">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+            </button>
+            <button class="icon-btn" id="exportPngBtn" title="Export High-Res Graph PNG">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
           </div>
         </div>
 
@@ -546,8 +789,16 @@
               <span>Tangent Line (dy/dx)</span>
             </label>
             <label class="toggle-label">
+              <input type="checkbox" id="toggleDerivative" />
+              <span>Derivative Curve f'(x)</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleIntegral" checked />
+              <span>Integral Area (∫)</span>
+            </label>
+            <label class="toggle-label">
               <input type="checkbox" id="toggleParabola" />
-              <span>Compare with Parabola (1 + x²/2)</span>
+              <span>Taylor 1 + x²/2</span>
             </label>
             <label class="toggle-label">
               <input type="checkbox" id="toggleAsymptotes" checked />
@@ -558,15 +809,11 @@
               <span>Slope Triangle</span>
             </label>
           </div>
+          
           <div class="toggle-group">
-            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;" id="zoomInBtn" title="Zoom In">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              <span>Zoom In</span>
-            </button>
-            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;" id="zoomOutBtn" title="Zoom Out">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              <span>Zoom Out</span>
-            </button>
+            <span class="status-indicator" id="zoomLevelDisplay">Zoom: 100%</span>
+            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem;" id="zoomInBtn" title="Zoom In">+</button>
+            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem;" id="zoomOutBtn" title="Zoom Out">-</button>
             <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem;" id="resetViewBtn">Reset View</button>
           </div>
         </div>
@@ -576,12 +823,13 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <span>Fundamental Hyperbolic Identities</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <span>Fundamental Hyperbolic & Calculus Identities</span>
           </div>
         </div>
-        <div class="inspector-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+        <div class="inspector-grid" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
           <div class="stat-box">
-            <span class="stat-label">Pythagorean-Analog</span>
+            <span class="stat-label">Pythagorean Analog</span>
             <div id="mathIdentity1">$$\cosh^2(x) - \sinh^2(x) = 1$$</div>
           </div>
           <div class="stat-box">
@@ -596,103 +844,128 @@
       </div>
     </section>
 
-    <!-- Right Column: Live Point Inspector, Calculus & Catenary -->
+    <!-- Right Column: Live Modular Tabbed Sidebar -->
     <aside class="sidebar">
       
-      <!-- Coordinate Point Inspector -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <span>Point Inspector</span>
-          </div>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Hover/Touch Canvas</span>
-        </div>
-        <div class="inspector-grid">
-          <div class="stat-box">
-            <span class="stat-label">Input (x)</span>
-            <span class="stat-value" id="inspectX">0.00</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">Output f(x)</span>
-            <span class="stat-value" id="inspectY">1.00</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">1st Derivative f'(x)</span>
-            <span class="stat-value" id="inspectDerivative" style="color: var(--tangent-color);">0.00</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">Tangent Angle (θ)</span>
-            <span class="stat-value" id="inspectAngle">0.0°</span>
-          </div>
-        </div>
-        <div class="formula-badge" id="pointSlopeEq">
-          Tangent: y = 0.00(x - 0.00) + 1.00
-        </div>
+      <!-- Modular Tab Navigation -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="inspector">Inspector</button>
+        <button class="tab-btn" data-tab="catenary">Catenary</button>
+        <button class="tab-btn" data-tab="calculus">Calculus</button>
       </div>
 
-      <!-- Catenary Bridge Physics Simulation -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <span>Catenary Physics Simulator</span>
+      <!-- Tab 1: Coordinate Point Inspector -->
+      <div class="tab-content active" id="tab-inspector">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>Point Inspector</span>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Hover or touch canvas</span>
           </div>
-        </div>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem;">
-          The hanging curve of a cable under uniform gravity is given by \( y(x) = a \cosh(x/a) - a \).
-        </p>
-        
-        <div class="slider-control">
-          <div class="slider-header">
-            <span>Scaling Parameter (a)</span>
-            <span id="paramAVal">2.0</span>
+          <div class="inspector-grid">
+            <div class="stat-box">
+              <span class="stat-label">Input (x)</span>
+              <span class="stat-value" id="inspectX">0.00</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Output f(x)</span>
+              <span class="stat-value" id="inspectY">1.000</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Derivative f'(x)</span>
+              <span class="stat-value" id="inspectDerivative" style="color: var(--tangent-color);">0.000</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Tangent Angle</span>
+              <span class="stat-value" id="inspectAngle">0.0°</span>
+            </div>
           </div>
-          <input type="range" id="paramASlider" min="0.5" max="5.0" step="0.1" value="2.0" />
-        </div>
-
-        <div class="slider-control">
-          <div class="slider-header">
-            <span>Bridge Span (L)</span>
-            <span id="spanVal">8.0 m</span>
+          <div class="formula-badge" id="pointSlopeEq" style="margin-top: 0.75rem;">
+            y = 0.00(x - 0.00) + 1.00
           </div>
-          <input type="range" id="spanSlider" min="2.0" max="14.0" step="0.5" value="8.0" />
-        </div>
-
-        <div class="inspector-grid" style="margin-top: 0.5rem;">
-          <div class="stat-box">
-            <span class="stat-label">Max Cable Sag</span>
-            <span class="stat-value" id="cableSag">5.53 m</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">Arc Length</span>
-            <span class="stat-value" id="cableLength">11.23 m</span>
+          <div class="stat-box" style="margin-top: 0.75rem;">
+            <span class="stat-label">Definite Integral \(\int_0^x f(t)dt\)</span>
+            <span class="stat-value" id="inspectIntegral" style="color: var(--secondary);">0.000</span>
           </div>
         </div>
       </div>
 
-      <!-- Calculus Reference Card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <span>Derivatives & Integrals</span>
+      <!-- Tab 2: Catenary Bridge Physics Simulator -->
+      <div class="tab-content" id="tab-catenary">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>Catenary Cable Physics</span>
+            </div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+            Ideal hanging cable under gravity: \( y(x) = a \cosh(x/a) - a \), where \( a = \frac{T_0}{\mu g} \).
+          </p>
+          
+          <div class="slider-control">
+            <div class="slider-header">
+              <span>Scaling Parameter (a)</span>
+              <span id="paramAVal">2.0</span>
+            </div>
+            <input type="range" id="paramASlider" min="0.5" max="6.0" step="0.1" value="2.0" />
+          </div>
+
+          <div class="slider-control">
+            <div class="slider-header">
+              <span>Bridge Span (L)</span>
+              <span id="spanVal">8.0 m</span>
+            </div>
+            <input type="range" id="spanSlider" min="2.0" max="16.0" step="0.5" value="8.0" />
+          </div>
+
+          <div class="inspector-grid" style="margin-top: 0.5rem;">
+            <div class="stat-box">
+              <span class="stat-label">Max Cable Sag</span>
+              <span class="stat-value" id="cableSag">5.53 m</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Arc Length</span>
+              <span class="stat-value" id="cableLength">11.23 m</span>
+            </div>
+          </div>
+
+          <div class="preset-buttons">
+            <button class="preset-button" id="presetGoldenGate">🌉 Golden Gate Bridge</button>
+            <button class="preset-button" id="presetPowerLine">⚡ Power Transmission Line</button>
           </div>
         </div>
-        <div class="derivation-item">
-          <div class="derivation-title">Hyperbolic Cosine & Sine</div>
-          <div style="font-size: 0.8rem;">
-            \(\frac{d}{dx}\cosh(x) = \sinh(x)\)<br>
-            \(\frac{d}{dx}\sinh(x) = \cosh(x)\)
+      </div>
+
+      <!-- Tab 3: Calculus Reference & Series -->
+      <div class="tab-content" id="tab-calculus">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>Derivatives & Integrals</span>
+            </div>
           </div>
-        </div>
-        <div class="derivation-item">
-          <div class="derivation-title">Hyperbolic Tangent</div>
-          <div style="font-size: 0.8rem;">
-            \(\frac{d}{dx}\tanh(x) = \operatorname{sech}^2(x)\)
+          <div class="derivation-item" style="margin-bottom: 0.6rem;">
+            <div class="derivation-title">Hyperbolic Cosine & Sine</div>
+            <div style="font-size: 0.8rem;">
+              \(\frac{d}{dx}\cosh(x) = \sinh(x)\)<br>
+              \(\frac{d}{dx}\sinh(x) = \cosh(x)\)<br>
+              \(\int \cosh(x)\,dx = \sinh(x) + C\)
+            </div>
           </div>
-        </div>
-        <div class="derivation-item">
-          <div class="derivation-title">Hyperbolic Secant</div>
-          <div style="font-size: 0.8rem;">
-            \(\frac{d}{dx}\operatorname{sech}(x) = -\operatorname{sech}(x)\tanh(x)\)
+          <div class="derivation-item" style="margin-bottom: 0.6rem;">
+            <div class="derivation-title">Hyperbolic Tangent & Secant</div>
+            <div style="font-size: 0.8rem;">
+              \(\frac{d}{dx}\tanh(x) = \operatorname{sech}^2(x)\)<br>
+              \(\frac{d}{dx}\operatorname{sech}(x) = -\operatorname{sech}(x)\tanh(x)\)
+            </div>
+          </div>
+          <div class="derivation-item">
+            <div class="derivation-title">Taylor Series Expansion</div>
+            <div style="font-size: 0.78rem;">
+              \(\cosh(x) = 1 + \frac{x^2}{2!} + \frac{x^4}{4!} + \dots\)<br>
+              \(\sinh(x) = x + \frac{x^3}{3!} + \frac{x^5}{5!} + \dots\)
+            </div>
           </div>
         </div>
       </div>
@@ -700,17 +973,42 @@
     </aside>
   </main>
 
+  <!-- Features Overview -->
+  <section class="features-section">
+    <div class="features-grid">
+      <div class="feature-card">
+        <h4>⚡ Fluid 60fps Morphing</h4>
+        <p>Continuously transforms hyperbolic functions with ease-in-out curve interpolation and zero-stutter frame synchronization.</p>
+      </div>
+      <div class="feature-card">
+        <h4>📐 Real-time Calculus Engine</h4>
+        <p>Interactive derivative tangent lines, slope step triangles, definite integral shaded areas, and Pythagorean identity verification.</p>
+      </div>
+      <div class="feature-card">
+        <h4>🌉 Catenary Physics Model</h4>
+        <p>Simulates real-world suspension cables and power transmission lines with adjustable horizontal tension and span.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- Download APK Section Banner -->
   <div style="max-width: 1440px; margin: 0 auto; padding: 0 1.5rem;">
     <div class="download-banner">
       <div class="download-text">
-        <h3>Install the Android Native App</h3>
-        <p>Get offline access, haptic crosshair dragging, dynamic themes, and full calculus engine on your phone.</p>
+        <h3>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Hyperbolic Explorer v1.1.0 Native Android App
+        </h3>
+        <p>Get offline access, fluid haptic scrubbing, Material 3 dynamic themes, and a full catenary simulator directly on your Android phone or tablet.</p>
       </div>
-      <a href="https://github.com/md1020k-jpg/Hyper-bola-1/releases/tag/v1.0.0" target="_blank" class="btn btn-primary" style="font-size: 1rem; padding: 0.75rem 1.5rem;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download v1.0.0 APK
-      </a>
+      <div class="download-btns">
+        <a href="https://github.com/md1020k-jpg/Hyper-bola-1/releases" target="_blank" class="btn btn-primary" style="font-size: 0.95rem; padding: 0.75rem 1.4rem;">
+          Download APK (v1.1.0)
+        </a>
+        <a href="https://github.com/md1020k-jpg/Hyper-bola-1" target="_blank" class="btn btn-secondary" style="font-size: 0.95rem; padding: 0.75rem 1.4rem;">
+          Source Code
+        </a>
+      </div>
     </div>
   </div>
 
@@ -753,18 +1051,31 @@
       let transitionProgress = 1.0;
       let animFrameId = null;
       let animStartTime = null;
-      const ANIM_DURATION = 360; // ms for fluid animation
+      const ANIM_DURATION = 360; // ms for fluid transition
 
       let showTangent = true;
+      let showDerivative = false;
+      let showIntegral = true;
       let showParabola = false;
       let showAsymptotes = true;
       let showSlopeTriangle = true;
 
       // Coordinate Transform
-      let scale = 50; // pixels per unit
+      let scale = 55; // pixels per unit
+      const baseScale = 55;
+      let panOffsetX = 0;
+      let panOffsetY = 0;
       let originX = 0;
       let originY = 0;
       let cursorX = 1.0; // math coordinate
+
+      // Interaction Modes
+      let isPanMode = false;
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let isPlayingAnimation = false;
+      let sweepTime = 0;
 
       // Color and Easing Utilities
       function hexToRgb(hex) {
@@ -791,13 +1102,14 @@
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       }
 
-      // Function Definitions & Derivatives
+      // Function Definitions, Derivatives & Integrals
       const functions = {
         cosh: {
           name: 'cosh(x)',
           latex: 'f(x) = \\cosh(x)',
           eval: (x) => Math.cosh(x),
           deriv: (x) => Math.sinh(x),
+          integral: (x) => Math.sinh(x),
           color: '#38bdf8'
         },
         sinh: {
@@ -805,6 +1117,7 @@
           latex: 'f(x) = \\sinh(x)',
           eval: (x) => Math.sinh(x),
           deriv: (x) => Math.cosh(x),
+          integral: (x) => Math.cosh(x) - 1,
           color: '#f43f5e'
         },
         tanh: {
@@ -812,6 +1125,7 @@
           latex: 'f(x) = \\tanh(x)',
           eval: (x) => Math.tanh(x),
           deriv: (x) => 1 / (Math.cosh(x) * Math.cosh(x)),
+          integral: (x) => Math.log(Math.cosh(x)),
           color: '#34d399'
         },
         sech: {
@@ -819,6 +1133,7 @@
           latex: 'f(x) = \\operatorname{sech}(x)',
           eval: (x) => 1 / Math.cosh(x),
           deriv: (x) => -Math.tanh(x) / Math.cosh(x),
+          integral: (x) => 2 * Math.atan(Math.exp(x)) - Math.PI / 2,
           color: '#fbbf24'
         },
         csch: {
@@ -826,6 +1141,7 @@
           latex: 'f(x) = \\operatorname{csch}(x)',
           eval: (x) => (x === 0 ? NaN : 1 / Math.sinh(x)),
           deriv: (x) => (x === 0 ? NaN : -Math.cosh(x) / (Math.sinh(x) * Math.sinh(x))),
+          integral: (x) => (x === 0 ? NaN : Math.log(Math.abs(Math.tanh(x / 2)))),
           color: '#a855f7'
         },
         coth: {
@@ -833,6 +1149,7 @@
           latex: 'f(x) = \\coth(x)',
           eval: (x) => (x === 0 ? NaN : Math.cosh(x) / Math.sinh(x)),
           deriv: (x) => (x === 0 ? NaN : -1 / (Math.sinh(x) * Math.sinh(x))),
+          integral: (x) => (x === 0 ? NaN : Math.log(Math.abs(Math.sinh(x)))),
           color: '#ec4899'
         }
       };
@@ -844,8 +1161,8 @@
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         ctx.scale(dpr, dpr);
-        originX = rect.width / 2;
-        originY = rect.height / 2;
+        originX = (rect.width / 2) + panOffsetX;
+        originY = (rect.height / 2) + panOffsetY;
         draw();
       }
 
@@ -862,20 +1179,44 @@
         const width = canvas.width / (window.devicePixelRatio || 1);
         const height = canvas.height / (window.devicePixelRatio || 1);
 
+        originX = (width / 2) + panOffsetX;
+        originY = (height / 2) + panOffsetY;
+
         // Clear Canvas
-        ctx.fillStyle = '#090d16';
+        ctx.fillStyle = '#080c14';
         ctx.fillRect(0, 0, width, height);
 
-        // Draw Grid
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = '#18243b';
-        ctx.fillStyle = '#64748b';
-        ctx.font = '11px JetBrains Mono, monospace';
-
+        // Draw Sub-Grid & Grid
         const minX = Math.floor(toMathX(0));
         const maxX = Math.ceil(toMathX(width));
         const minY = Math.floor(toMathY(height));
         const maxY = Math.ceil(toMathY(0));
+
+        // Subgrid lines if zoomed in
+        if (scale > 70) {
+          ctx.lineWidth = 0.5;
+          ctx.strokeStyle = '#101726';
+          for (let x = minX * 2; x <= maxX * 2; x++) {
+            const sx = toScreenX(x * 0.5);
+            ctx.beginPath();
+            ctx.moveTo(sx, 0);
+            ctx.lineTo(sx, height);
+            ctx.stroke();
+          }
+          for (let y = minY * 2; y <= maxY * 2; y++) {
+            const sy = toScreenY(y * 0.5);
+            ctx.beginPath();
+            ctx.moveTo(0, sy);
+            ctx.lineTo(width, sy);
+            ctx.stroke();
+          }
+        }
+
+        // Primary Grid
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#182338';
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px JetBrains Mono, monospace';
 
         // Vertical gridlines
         for (let x = minX; x <= maxX; x++) {
@@ -886,7 +1227,7 @@
           ctx.stroke();
 
           if (x !== 0 && sx > 20 && sx < width - 20) {
-            ctx.fillText(x.toString(), sx + 4, originY - 6);
+            ctx.fillText(x.toString(), sx + 4, Math.min(height - 10, Math.max(20, originY - 6)));
           }
         }
 
@@ -899,7 +1240,7 @@
           ctx.stroke();
 
           if (y !== 0 && sy > 20 && sy < height - 20) {
-            ctx.fillText(y.toString(), originX + 6, sy - 4);
+            ctx.fillText(y.toString(), Math.min(width - 25, Math.max(10, originX + 6)), sy - 4);
           }
         }
 
@@ -958,10 +1299,34 @@
           ctx.setLineDash([]);
         }
 
-        // Optional Parabola Comparison
+        // Optional Integral Shaded Area
+        if (showIntegral && (currentFunction === 'cosh' || currentFunction === 'sinh' || currentFunction === 'tanh' || currentFunction === 'sech')) {
+          const startX = 0;
+          const endX = cursorX;
+          const sPx1 = toScreenX(Math.min(startX, endX));
+          const sPx2 = toScreenX(Math.max(startX, endX));
+
+          ctx.fillStyle = 'rgba(99, 102, 241, 0.18)';
+          ctx.beginPath();
+          ctx.moveTo(sPx1, originY);
+
+          for (let px = sPx1; px <= sPx2; px += 2) {
+            const mx = toMathX(px);
+            const my = currFn.eval(mx);
+            if (!isNaN(my) && isFinite(my)) {
+              ctx.lineTo(px, toScreenY(my));
+            }
+          }
+          ctx.lineTo(sPx2, originY);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Optional Parabola Comparison (Taylor Approximation)
         if (showParabola) {
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
           ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
           ctx.beginPath();
           let started = false;
           for (let px = 0; px <= width; px += 2) {
@@ -972,6 +1337,29 @@
             else { ctx.lineTo(px, py); }
           }
           ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Optional Derivative Curve Overlay
+        if (showDerivative) {
+          ctx.strokeStyle = '#a78bfa';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          let dStarted = false;
+          for (let px = 0; px <= width; px += 2) {
+            const mx = toMathX(px);
+            const dVal = currFn.deriv(mx);
+            if (!isNaN(dVal) && isFinite(dVal) && Math.abs(dVal) < 60) {
+              const py = toScreenY(dVal);
+              if (!dStarted) { ctx.moveTo(px, py); dStarted = true; }
+              else { ctx.lineTo(px, py); }
+            } else {
+              dStarted = false;
+            }
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         // Active Curve Plot (Interpolated Morph Transition)
@@ -1026,10 +1414,11 @@
         ctx.shadowBlur = 0; // reset glow
 
         // Crosshair & Tangent Line Calculations
-        let cy, slope;
+        let cy, slope, integralVal;
         if (transitionProgress >= 1.0 || prevFunction === currentFunction) {
           cy = currFn.eval(cursorX);
           slope = currFn.deriv(cursorX);
+          integralVal = currFn.integral ? currFn.integral(cursorX) : NaN;
         } else {
           const cy1 = prevFn.eval(cursorX);
           const cy2 = currFn.eval(cursorX);
@@ -1042,6 +1431,7 @@
 
           cy = (validC1 && validC2) ? (cy1 + (cy2 - cy1) * t) : (t >= 0.5 ? cy2 : cy1);
           slope = (validS1 && validS2) ? (slope1 + (slope2 - slope1) * t) : (t >= 0.5 ? slope2 : slope1);
+          integralVal = currFn.integral ? currFn.integral(cursorX) : NaN;
         }
 
         if (!isNaN(cy) && isFinite(cy)) {
@@ -1076,7 +1466,7 @@
               const p3x = p2x;
               const p3y = toScreenY(cy + dy);
 
-              ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+              ctx.fillStyle = 'rgba(245, 158, 11, 0.14)';
               ctx.beginPath();
               ctx.moveTo(p1x, p1y);
               ctx.lineTo(p2x, p2y);
@@ -1084,7 +1474,7 @@
               ctx.closePath();
               ctx.fill();
 
-              ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)';
+              ctx.strokeStyle = 'rgba(245, 158, 11, 0.75)';
               ctx.lineWidth = 1.5;
               ctx.stroke();
             }
@@ -1093,61 +1483,159 @@
           // Crosshair Dot & Pulsing Ring
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(scx, scy, 5, 0, Math.PI * 2);
+          ctx.arc(scx, scy, 5.5, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.strokeStyle = activeColor;
           ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.arc(scx, scy, 9, 0, Math.PI * 2);
+          ctx.arc(scx, scy, 9.5, 0, Math.PI * 2);
           ctx.stroke();
         }
 
         // Update UI Badges & HUD
-        updateHUDAndInspector(cursorX, cy, slope);
+        updateHUDAndInspector(cursorX, cy, slope, integralVal);
       }
 
-      function updateHUDAndInspector(x, y, slope) {
+      function updateHUDAndInspector(x, y, slope, integralVal) {
         const deg = (Math.atan(slope) * 180 / Math.PI).toFixed(1);
         const yStr = (!isNaN(y) && isFinite(y)) ? y.toFixed(3) : 'Undefined';
         const slopeStr = (!isNaN(slope) && isFinite(slope)) ? slope.toFixed(3) : 'Undefined';
+        const intStr = (!isNaN(integralVal) && isFinite(integralVal)) ? integralVal.toFixed(3) : 'N/A';
 
         document.getElementById('hudFunction').innerText = `f(x) = ${functions[currentFunction].name}`;
         document.getElementById('hudCoords').innerText = `x: ${x.toFixed(2)}, y: ${yStr}`;
         document.getElementById('hudSlope').innerText = `Slope dy/dx: ${slopeStr} (θ = ${deg}°)`;
+        document.getElementById('hudIntegral').innerText = `∫₀ˣ f(t)dt: ${intStr}`;
 
         document.getElementById('inspectX').innerText = x.toFixed(2);
         document.getElementById('inspectY').innerText = yStr;
         document.getElementById('inspectDerivative').innerText = slopeStr;
         document.getElementById('inspectAngle').innerText = `${deg}°`;
+        document.getElementById('inspectIntegral').innerText = intStr;
 
         if (!isNaN(y) && !isNaN(slope)) {
           document.getElementById('pointSlopeEq').innerText = 
             `Tangent: y = ${slope.toFixed(2)}(x - ${x.toFixed(2)}) + ${y.toFixed(2)}`;
         }
+
+        document.getElementById('zoomLevelDisplay').innerText = `Zoom: ${Math.round((scale / baseScale) * 100)}%`;
       }
 
-      // Mouse & Touch Event Handlers
+      // Pointer Event Handlers (Pan vs Inspect Crosshair)
+      function handlePointerDown(e) {
+        isDragging = true;
+        const rect = container.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragStartX = clientX;
+        dragStartY = clientY;
+
+        if (!isPanMode) {
+          const px = clientX - rect.left;
+          cursorX = toMathX(px);
+          draw();
+        }
+      }
+
       function handlePointerMove(e) {
         const rect = container.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const px = clientX - rect.left;
-        cursorX = toMathX(px);
-        draw();
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        if (isDragging && isPanMode) {
+          const dx = clientX - dragStartX;
+          const dy = clientY - dragStartY;
+          panOffsetX += dx;
+          panOffsetY += dy;
+          dragStartX = clientX;
+          dragStartY = clientY;
+          draw();
+        } else if (!isPanMode) {
+          const px = clientX - rect.left;
+          cursorX = toMathX(px);
+          draw();
+        }
       }
 
-      container.addEventListener('mousemove', handlePointerMove);
+      function handlePointerUp() {
+        isDragging = false;
+      }
+
+      container.addEventListener('mousedown', handlePointerDown);
+      window.addEventListener('mousemove', handlePointerMove);
+      window.addEventListener('mouseup', handlePointerUp);
+
+      container.addEventListener('touchstart', (e) => {
+        handlePointerDown(e);
+      }, { passive: false });
+
       container.addEventListener('touchmove', (e) => {
         e.preventDefault();
         handlePointerMove(e);
       }, { passive: false });
+
+      window.addEventListener('touchend', handlePointerUp);
+
+      // Pan Mode Toggle
+      const panModeBtn = document.getElementById('panModeBtn');
+      panModeBtn.addEventListener('click', () => {
+        isPanMode = !isPanMode;
+        panModeBtn.classList.toggle('active', isPanMode);
+        container.classList.toggle('pan-mode', isPanMode);
+      });
+
+      // Play/Pause Automated Scanner Animation Loop
+      const playAnimationBtn = document.getElementById('playAnimationBtn');
+      const playIcon = document.getElementById('playIcon');
+      let playAnimId = null;
+
+      function togglePlaySweep() {
+        isPlayingAnimation = !isPlayingAnimation;
+        playAnimationBtn.classList.toggle('active', isPlayingAnimation);
+
+        if (isPlayingAnimation) {
+          playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+          sweepTime = 0;
+
+          function loopSweep() {
+            sweepTime += 0.022;
+            cursorX = Math.sin(sweepTime) * 2.8;
+            draw();
+            if (isPlayingAnimation) {
+              playAnimId = requestAnimationFrame(loopSweep);
+            }
+          }
+          playAnimId = requestAnimationFrame(loopSweep);
+        } else {
+          playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+          if (playAnimId) cancelAnimationFrame(playAnimId);
+        }
+      }
+      playAnimationBtn.addEventListener('click', togglePlaySweep);
+
+      // Export Graph PNG
+      document.getElementById('exportPngBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `hyperbolic-${currentFunction}-graph.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+
+      // Quick Jump Preset Points
+      document.querySelectorAll('.preset-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          cursorX = parseFloat(btn.dataset.x);
+          draw();
+        });
+      });
 
       // Smooth Switch Function Handler with Animation Loop
       function switchFunction(newFuncKey) {
         if (!functions[newFuncKey]) return;
         if (newFuncKey === currentFunction && transitionProgress >= 1.0) return;
 
-        // Visual chip active state with instant feedback
+        // Visual chip active state
         document.querySelectorAll('#functionChips .chip').forEach(c => {
           if (c.dataset.func === newFuncKey) {
             c.classList.add('active');
@@ -1195,6 +1683,14 @@
         showTangent = e.target.checked;
         draw();
       });
+      document.getElementById('toggleDerivative').addEventListener('change', (e) => {
+        showDerivative = e.target.checked;
+        draw();
+      });
+      document.getElementById('toggleIntegral').addEventListener('change', (e) => {
+        showIntegral = e.target.checked;
+        draw();
+      });
       document.getElementById('toggleParabola').addEventListener('change', (e) => {
         showParabola = e.target.checked;
         draw();
@@ -1207,26 +1703,22 @@
         showSlopeTriangle = e.target.checked;
         draw();
       });
+
       // Toolbar Zoom & Reset Controls
-      const zoomInBtn = document.getElementById('zoomInBtn');
-      const zoomOutBtn = document.getElementById('zoomOutBtn');
+      document.getElementById('zoomInBtn').addEventListener('click', () => {
+        scale = Math.min(300, scale * 1.25);
+        draw();
+      });
 
-      if (zoomInBtn) {
-        zoomInBtn.addEventListener('click', () => {
-          scale = Math.min(300, scale * 1.25);
-          draw();
-        });
-      }
-
-      if (zoomOutBtn) {
-        zoomOutBtn.addEventListener('click', () => {
-          scale = Math.max(15, scale / 1.25);
-          draw();
-        });
-      }
+      document.getElementById('zoomOutBtn').addEventListener('click', () => {
+        scale = Math.max(15, scale / 1.25);
+        draw();
+      });
 
       document.getElementById('resetViewBtn').addEventListener('click', () => {
-        scale = 50;
+        scale = baseScale;
+        panOffsetX = 0;
+        panOffsetY = 0;
         cursorX = 0.0;
         draw();
       });
@@ -1242,7 +1734,19 @@
         draw();
       }, { passive: false });
 
-      // Catenary Simulation Logic
+      // Tab Bar Switching
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+          btn.classList.add('active');
+          const targetTab = document.getElementById(`tab-${btn.dataset.tab}`);
+          if (targetTab) targetTab.classList.add('active');
+        });
+      });
+
+      // Catenary Simulation Logic & Presets
       const paramASlider = document.getElementById('paramASlider');
       const spanSlider = document.getElementById('spanSlider');
 
@@ -1261,6 +1765,18 @@
 
       paramASlider.addEventListener('input', updateCatenary);
       spanSlider.addEventListener('input', updateCatenary);
+
+      document.getElementById('presetGoldenGate').addEventListener('click', () => {
+        paramASlider.value = 4.2;
+        spanSlider.value = 14.0;
+        updateCatenary();
+      });
+
+      document.getElementById('presetPowerLine').addEventListener('click', () => {
+        paramASlider.value = 1.2;
+        spanSlider.value = 4.5;
+        updateCatenary();
+      });
 
       // Initial Setup
       resizeCanvas();
