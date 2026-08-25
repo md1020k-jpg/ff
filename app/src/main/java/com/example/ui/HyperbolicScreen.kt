@@ -21,8 +21,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Architecture
 import androidx.compose.material.icons.filled.AutoGraph
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Functions
@@ -32,8 +34,13 @@ import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Tune
+import com.example.ui.components.NumericalDifferentiationCard
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -72,9 +79,11 @@ import com.example.R
 import com.example.model.GraphPreset
 import com.example.ui.components.CatenaryDemoCard
 import com.example.ui.components.FunctionSelectorSection
+import com.example.ui.components.GeminiChatSection
 import com.example.ui.components.HyperbolicCalculusDerivationCard
 import com.example.ui.components.HyperbolicPlotCanvas
 import com.example.ui.components.IdentitiesDialog
+import com.example.ui.components.NumericalSolverCard
 import com.example.ui.components.ParabolaComparisonCard
 import com.example.ui.components.PointInspectorCard
 import java.util.Locale
@@ -145,6 +154,45 @@ fun HyperbolicScreen(
                             imageVector = Icons.Default.RestartAlt,
                             contentDescription = "Reset Zoom",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            viewModel.setSelectedTab(AppViewTab.DIFFERENTIATION)
+                            viewModel.setSelectedSidebarTab(SidebarSectionTab.DIFFERENTIATION)
+                        },
+                        modifier = Modifier.testTag("open_differentiation_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Timeline,
+                            contentDescription = "Numerical Differentiation",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            viewModel.setSelectedTab(AppViewTab.NUMERICAL_SOLVER)
+                            viewModel.setSelectedSidebarTab(SidebarSectionTab.NUMERICAL_SOLVER)
+                        },
+                        modifier = Modifier.testTag("open_numerical_solver_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Calculate,
+                            contentDescription = "Numerical Solver",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            viewModel.setSelectedTab(AppViewTab.AI_CHAT)
+                            viewModel.setSelectedSidebarTab(SidebarSectionTab.GEMINI_AI)
+                        },
+                        modifier = Modifier.testTag("open_gemini_chat_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Gemini AI Assistant",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     IconButton(
@@ -282,10 +330,13 @@ fun HyperbolicScreen(
                                     when (tab) {
                                         AppViewTab.PLOT -> Icon(Icons.Default.ShowChart, contentDescription = null)
                                         AppViewTab.INSPECTOR -> Icon(Icons.Default.TouchApp, contentDescription = null)
+                                        AppViewTab.DIFFERENTIATION -> Icon(Icons.Default.Timeline, contentDescription = null)
                                         AppViewTab.PARABOLA -> Icon(Icons.Default.CompareArrows, contentDescription = null)
                                         AppViewTab.ENGINEERING -> Icon(Icons.Default.Tune, contentDescription = null)
                                         AppViewTab.PHYSICS -> Icon(Icons.Default.Architecture, contentDescription = null)
                                         AppViewTab.IDENTITIES -> Icon(Icons.Default.Functions, contentDescription = null)
+                                        AppViewTab.NUMERICAL_SOLVER -> Icon(Icons.Default.Calculate, contentDescription = null)
+                                        AppViewTab.AI_CHAT -> Icon(Icons.Default.AutoAwesome, contentDescription = null)
                                     }
                                 },
                                 modifier = Modifier.testTag("tab_${tab.name.lowercase(Locale.ROOT)}")
@@ -305,6 +356,51 @@ fun HyperbolicScreen(
                                 uiState = uiState,
                                 viewModel = viewModel
                             )
+                        }
+                        AppViewTab.DIFFERENTIATION -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                GraphCanvasCard(
+                                    uiState = uiState,
+                                    viewModel = viewModel,
+                                    showTangentLine = uiState.showTangentLine,
+                                    showParabolaComparison = uiState.showParabolaComparison
+                                )
+
+                                NumericalDifferentiationCard(
+                                    functionExpr = uiState.diffFunctionExpr,
+                                    parsedExpression = uiState.diffParsedExpression,
+                                    parseError = uiState.diffParseError,
+                                    stepSizeH = uiState.diffStepSizeH,
+                                    method = uiState.diffMethod,
+                                    plotFunction = uiState.plotDiffFunction,
+                                    plotFirstDerivative = uiState.plotFirstDerivative,
+                                    plotSecondDerivative = uiState.plotSecondDerivative,
+                                    showTangentLine = uiState.showDiffTangentLine,
+                                    showNormalLine = uiState.showDiffNormalLine,
+                                    scrubX = uiState.scrubX,
+                                    paramA = uiState.paramA,
+                                    shiftC = uiState.shiftC,
+                                    plotXMin = uiState.bounds.xMin.toDouble(),
+                                    plotXMax = uiState.bounds.xMax.toDouble(),
+                                    onFunctionExprChange = { viewModel.setDiffFunctionExpr(it) },
+                                    onStepSizeHChange = { viewModel.setDiffStepSizeH(it) },
+                                    onMethodChange = { viewModel.setDiffMethod(it) },
+                                    onTogglePlotFunction = { viewModel.togglePlotDiffFunction(it) },
+                                    onTogglePlotFirstDerivative = { viewModel.togglePlotFirstDerivative(it) },
+                                    onTogglePlotSecondDerivative = { viewModel.togglePlotSecondDerivative(it) },
+                                    onToggleShowTangentLine = { viewModel.toggleShowDiffTangentLine(it) },
+                                    onToggleShowNormalLine = { viewModel.toggleShowDiffNormalLine(it) },
+                                    onScrubXChange = { viewModel.setScrubX(it) },
+                                    onApplyPreset = { viewModel.applyDifferentiationPreset(it) },
+                                    onAskGeminiAboutDerivative = { expr, diag -> viewModel.askGeminiAboutDerivative(expr, diag) }
+                                )
+                            }
                         }
                         AppViewTab.PARABOLA -> {
                             ParabolaTabView(
@@ -327,6 +423,55 @@ fun HyperbolicScreen(
                         AppViewTab.IDENTITIES -> {
                             IdentitiesTabView()
                         }
+                        AppViewTab.NUMERICAL_SOLVER -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                NumericalSolverCard(
+                                    mode = uiState.solverMode,
+                                    fx = uiState.solverFx,
+                                    gx = uiState.solverGx,
+                                    method = uiState.solverMethod,
+                                    domainMin = uiState.solverDomainMin,
+                                    domainMax = uiState.solverDomainMax,
+                                    tolerance = uiState.solverTolerance,
+                                    solverResult = uiState.solverResult,
+                                    plotXMin = uiState.bounds.xMin.toDouble(),
+                                    plotXMax = uiState.bounds.xMax.toDouble(),
+                                    onModeChange = { viewModel.setSolverMode(it) },
+                                    onFxChange = { viewModel.setSolverFx(it) },
+                                    onGxChange = { viewModel.setSolverGx(it) },
+                                    onMethodChange = { viewModel.setSolverMethod(it) },
+                                    onDomainChange = { min, max -> viewModel.setSolverDomain(min, max) },
+                                    onToleranceChange = { viewModel.setSolverTolerance(it) },
+                                    onSolve = { viewModel.solveEquation() },
+                                    onApplyPreset = { viewModel.applySolverPreset(it) },
+                                    onInspectRoot = {
+                                        viewModel.inspectSolvedRoot(it)
+                                        viewModel.setSelectedTab(AppViewTab.PLOT)
+                                    },
+                                    onAskGeminiAboutSolution = { desc, roots -> viewModel.askGeminiAboutSolution(desc, roots) }
+                                )
+                            }
+                        }
+                        AppViewTab.AI_CHAT -> {
+                            GeminiChatSection(
+                                chatMessages = uiState.chatMessages,
+                                isGenerating = uiState.isGeneratingChatResponse,
+                                selectedModel = uiState.selectedGeminiModel,
+                                isSearchGroundingEnabled = uiState.isSearchGroundingEnabled,
+                                onSendMessage = { viewModel.sendChatMessage(it) },
+                                onSelectModel = { viewModel.selectGeminiModel(it) },
+                                onToggleSearchGrounding = { viewModel.toggleSearchGrounding(it) },
+                                onClearChat = { viewModel.clearChat() },
+                                onSendCurrentAppContext = { viewModel.sendCurrentAppContextToChat() },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
             }
@@ -339,6 +484,7 @@ fun HyperbolicScreen(
  * 1. Point Inspector
  * 2. Catenary Physics Simulator
  * 3. Calculus Reference
+ * 4. Gemini AI Chat & Search Grounding
  */
 @Composable
 fun SidebarTabbedPanel(
@@ -355,11 +501,12 @@ fun SidebarTabbedPanel(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Sidebar Header with 3 Tabs
-            TabRow(
+            // Sidebar Header with 4 Tabs
+            ScrollableTabRow(
                 selectedTabIndex = uiState.selectedSidebarTab.ordinal,
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = MaterialTheme.colorScheme.primary,
+                edgePadding = 8.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 SidebarSectionTab.values().forEach { tab ->
@@ -371,8 +518,11 @@ fun SidebarTabbedPanel(
                             Text(
                                 text = when (tab) {
                                     SidebarSectionTab.POINT_INSPECTOR -> "Point Inspector"
+                                    SidebarSectionTab.DIFFERENTIATION -> "Derivatives"
+                                    SidebarSectionTab.NUMERICAL_SOLVER -> "Numerical Solver"
                                     SidebarSectionTab.CATENARY_SIMULATOR -> "Catenary Physics"
-                                    SidebarSectionTab.CALCULUS_REFERENCE -> "Calculus Reference"
+                                    SidebarSectionTab.CALCULUS_REFERENCE -> "Calculus"
+                                    SidebarSectionTab.GEMINI_AI -> "Gemini AI"
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -383,8 +533,11 @@ fun SidebarTabbedPanel(
                             Icon(
                                 imageVector = when (tab) {
                                     SidebarSectionTab.POINT_INSPECTOR -> Icons.Default.TouchApp
+                                    SidebarSectionTab.DIFFERENTIATION -> Icons.Default.Timeline
+                                    SidebarSectionTab.NUMERICAL_SOLVER -> Icons.Default.Calculate
                                     SidebarSectionTab.CATENARY_SIMULATOR -> Icons.Default.Architecture
                                     SidebarSectionTab.CALCULUS_REFERENCE -> Icons.Default.Functions
+                                    SidebarSectionTab.GEMINI_AI -> Icons.Default.AutoAwesome
                                 },
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
@@ -395,72 +548,142 @@ fun SidebarTabbedPanel(
                 }
             }
 
-            // Tab Content with Scrollable Area
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(14.dp)
-            ) {
-                when (uiState.selectedSidebarTab) {
-                    SidebarSectionTab.POINT_INSPECTOR -> {
-                        PointInspectorCard(
-                            scrubX = uiState.scrubX,
-                            paramA = uiState.paramA,
-                            shiftC = uiState.shiftC,
-                            activeFunctions = uiState.activeFunctions,
-                            onScrubChange = { viewModel.setScrubX(it) },
-                            boundsMinX = uiState.bounds.xMin,
-                            boundsMaxX = uiState.bounds.xMax,
-                            showTangentLine = uiState.showTangentLine,
-                            onToggleTangentLine = { viewModel.toggleTangentLine() },
-                            showParabolaComparison = uiState.showParabolaComparison,
-                            parabolaMode = uiState.parabolaMode
-                        )
-                    }
-                    SidebarSectionTab.CATENARY_SIMULATOR -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            CatenaryDemoCard(
-                                calculation = uiState.catenaryCalculation,
-                                selectedPreset = uiState.selectedCablePreset,
-                                onTensionChange = { viewModel.updateCableTension(it) },
-                                onSpanChange = { viewModel.updateCableSpan(it) },
-                                onMassChange = { viewModel.updateCableMassDensity(it) },
-                                onPresetSelect = { viewModel.applyCablePreset(it) }
+            // Tab Content
+            if (uiState.selectedSidebarTab == SidebarSectionTab.GEMINI_AI) {
+                GeminiChatSection(
+                    chatMessages = uiState.chatMessages,
+                    isGenerating = uiState.isGeneratingChatResponse,
+                    selectedModel = uiState.selectedGeminiModel,
+                    isSearchGroundingEnabled = uiState.isSearchGroundingEnabled,
+                    onSendMessage = { viewModel.sendChatMessage(it) },
+                    onSelectModel = { viewModel.selectGeminiModel(it) },
+                    onToggleSearchGrounding = { viewModel.toggleSearchGrounding(it) },
+                    onClearChat = { viewModel.clearChat() },
+                    onSendCurrentAppContext = { viewModel.sendCurrentAppContextToChat() },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(14.dp)
+                ) {
+                    when (uiState.selectedSidebarTab) {
+                        SidebarSectionTab.POINT_INSPECTOR -> {
+                            PointInspectorCard(
+                                scrubX = uiState.scrubX,
+                                paramA = uiState.paramA,
+                                shiftC = uiState.shiftC,
+                                activeFunctions = uiState.activeFunctions,
+                                onScrubChange = { viewModel.setScrubX(it) },
+                                boundsMinX = uiState.bounds.xMin,
+                                boundsMaxX = uiState.bounds.xMax,
+                                showTangentLine = uiState.showTangentLine,
+                                onToggleTangentLine = { viewModel.toggleTangentLine() },
+                                showParabolaComparison = uiState.showParabolaComparison,
+                                parabolaMode = uiState.parabolaMode
                             )
+                        }
+                        SidebarSectionTab.DIFFERENTIATION -> {
+                            NumericalDifferentiationCard(
+                                functionExpr = uiState.diffFunctionExpr,
+                                parsedExpression = uiState.diffParsedExpression,
+                                parseError = uiState.diffParseError,
+                                stepSizeH = uiState.diffStepSizeH,
+                                method = uiState.diffMethod,
+                                plotFunction = uiState.plotDiffFunction,
+                                plotFirstDerivative = uiState.plotFirstDerivative,
+                                plotSecondDerivative = uiState.plotSecondDerivative,
+                                showTangentLine = uiState.showDiffTangentLine,
+                                showNormalLine = uiState.showDiffNormalLine,
+                                scrubX = uiState.scrubX,
+                                paramA = uiState.paramA,
+                                shiftC = uiState.shiftC,
+                                plotXMin = uiState.bounds.xMin.toDouble(),
+                                plotXMax = uiState.bounds.xMax.toDouble(),
+                                onFunctionExprChange = { viewModel.setDiffFunctionExpr(it) },
+                                onStepSizeHChange = { viewModel.setDiffStepSizeH(it) },
+                                onMethodChange = { viewModel.setDiffMethod(it) },
+                                onTogglePlotFunction = { viewModel.togglePlotDiffFunction(it) },
+                                onTogglePlotFirstDerivative = { viewModel.togglePlotFirstDerivative(it) },
+                                onTogglePlotSecondDerivative = { viewModel.togglePlotSecondDerivative(it) },
+                                onToggleShowTangentLine = { viewModel.toggleShowDiffTangentLine(it) },
+                                onToggleShowNormalLine = { viewModel.toggleShowDiffNormalLine(it) },
+                                onScrubXChange = { viewModel.setScrubX(it) },
+                                onApplyPreset = { viewModel.applyDifferentiationPreset(it) },
+                                onAskGeminiAboutDerivative = { expr, diag -> viewModel.askGeminiAboutDerivative(expr, diag) }
+                            )
+                        }
+                        SidebarSectionTab.NUMERICAL_SOLVER -> {
+                            NumericalSolverCard(
+                                mode = uiState.solverMode,
+                                fx = uiState.solverFx,
+                                gx = uiState.solverGx,
+                                method = uiState.solverMethod,
+                                domainMin = uiState.solverDomainMin,
+                                domainMax = uiState.solverDomainMax,
+                                tolerance = uiState.solverTolerance,
+                                solverResult = uiState.solverResult,
+                                plotXMin = uiState.bounds.xMin.toDouble(),
+                                plotXMax = uiState.bounds.xMax.toDouble(),
+                                onModeChange = { viewModel.setSolverMode(it) },
+                                onFxChange = { viewModel.setSolverFx(it) },
+                                onGxChange = { viewModel.setSolverGx(it) },
+                                onMethodChange = { viewModel.setSolverMethod(it) },
+                                onDomainChange = { min, max -> viewModel.setSolverDomain(min, max) },
+                                onToleranceChange = { viewModel.setSolverTolerance(it) },
+                                onSolve = { viewModel.solveEquation() },
+                                onApplyPreset = { viewModel.applySolverPreset(it) },
+                                onInspectRoot = { viewModel.inspectSolvedRoot(it) },
+                                onAskGeminiAboutSolution = { desc, roots -> viewModel.askGeminiAboutSolution(desc, roots) }
+                            )
+                        }
+                        SidebarSectionTab.CATENARY_SIMULATOR -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                CatenaryDemoCard(
+                                    calculation = uiState.catenaryCalculation,
+                                    selectedPreset = uiState.selectedCablePreset,
+                                    onTensionChange = { viewModel.updateCableTension(it) },
+                                    onSpanChange = { viewModel.updateCableSpan(it) },
+                                    onMassChange = { viewModel.updateCableMassDensity(it) },
+                                    onPresetSelect = { viewModel.applyCablePreset(it) }
+                                )
 
-                            // Physics insight box
-                            Card(
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                // Physics insight box
+                                Card(
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        text = "Catenary Equation: y = a · cosh(x / a)",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Where scaling parameter a = T₀ / (μ · g), balancing horizontal tension T₀ and distributed weight μg.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "Catenary Equation: y = a · cosh(x / a)",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = "Where scaling parameter a = T₀ / (μ · g), balancing horizontal tension T₀ and distributed weight μg.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
-                    SidebarSectionTab.CALCULUS_REFERENCE -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            HyperbolicCalculusDerivationCard()
-                            CalculusReferenceFormulasCard()
+                        SidebarSectionTab.CALCULUS_REFERENCE -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                HyperbolicCalculusDerivationCard()
+                                CalculusReferenceFormulasCard()
+                            }
                         }
+                        SidebarSectionTab.GEMINI_AI -> { /* Handled above */ }
                     }
                 }
             }
@@ -930,12 +1153,31 @@ private fun GraphCanvasCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text(
-                    text = "x: [${String.format(Locale.US, "%.1f", uiState.bounds.xMin)}, ${String.format(Locale.US, "%.1f", uiState.bounds.xMax)}]",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    IconButton(
+                        onClick = { viewModel.toggleHaptics() },
+                        modifier = Modifier
+                            .size(24.dp)
+                            .testTag("canvas_toggle_haptics_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Vibration,
+                            contentDescription = if (uiState.isHapticsEnabled) "Haptic Feedback Enabled" else "Haptic Feedback Disabled",
+                            tint = if (uiState.isHapticsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = "x: [${String.format(Locale.US, "%.1f", uiState.bounds.xMin)}, ${String.format(Locale.US, "%.1f", uiState.bounds.xMax)}]",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             HyperbolicPlotCanvas(
@@ -957,6 +1199,7 @@ private fun GraphCanvasCard(
                 isAutoMorphing = uiState.isAutoMorphing,
                 showTowers = true,
                 isPanZoomMode = uiState.isPanZoomMode,
+                isHapticsEnabled = uiState.isHapticsEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(310.dp)

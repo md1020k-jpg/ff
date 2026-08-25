@@ -2,6 +2,11 @@ package com.example.ui.components
 
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -38,7 +43,11 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.model.FunctionCategory
@@ -84,6 +93,17 @@ fun HyperbolicPlotCanvas(
         isAutoMorphing = uiState.isAutoMorphing,
         showTowers = true,
         isPanZoomMode = uiState.isPanZoomMode,
+        isHapticsEnabled = uiState.isHapticsEnabled,
+        isDiffToolActive = uiState.isDiffToolActive,
+        diffFunctionExpr = uiState.diffFunctionExpr,
+        diffParsedExpression = uiState.diffParsedExpression,
+        diffStepSizeH = uiState.diffStepSizeH,
+        diffMethod = uiState.diffMethod,
+        plotDiffFunction = uiState.plotDiffFunction,
+        plotFirstDerivative = uiState.plotFirstDerivative,
+        plotSecondDerivative = uiState.plotSecondDerivative,
+        showDiffTangentLine = uiState.showDiffTangentLine,
+        showDiffNormalLine = uiState.showDiffNormalLine,
         modifier = modifier
     )
 }
@@ -91,7 +111,7 @@ fun HyperbolicPlotCanvas(
 /**
  * Custom Compose Canvas component that draws the 2D Cartesian coordinate grid,
  * axis numeric labels, asymptotes, and calculates/renders all active hyperbolic curves,
- * derivative tangent lines, and smoothly animated parabola comparison morph transitions.
+ * derivative tangent lines, numerical differentiation curves, and smoothly animated parabola comparison morph transitions.
  */
 @Composable
 fun HyperbolicPlotCanvas(
@@ -113,6 +133,17 @@ fun HyperbolicPlotCanvas(
     isAutoMorphing: Boolean = false,
     showTowers: Boolean = true,
     isPanZoomMode: Boolean = false,
+    isHapticsEnabled: Boolean = true,
+    isDiffToolActive: Boolean = false,
+    diffFunctionExpr: String = "cosh(x)",
+    diffParsedExpression: com.example.model.Expression? = null,
+    diffStepSizeH: Double = 0.001,
+    diffMethod: com.example.model.DifferentiationMethod = com.example.model.DifferentiationMethod.FIVE_POINT_CENTRAL,
+    plotDiffFunction: Boolean = true,
+    plotFirstDerivative: Boolean = true,
+    plotSecondDerivative: Boolean = false,
+    showDiffTangentLine: Boolean = true,
+    showDiffNormalLine: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val zeroLineColor = Color(0xFF64748B)
@@ -244,6 +275,83 @@ fun HyperbolicPlotCanvas(
 
     val effectiveGridColor = if (isDark) darkGridLineColor else gridLineColor
 
+    val view = LocalView.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val vibrator = remember(context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = context.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            vm?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+    }
+
+    // Critical landmark X-coordinates that trigger subtle haptic vibration when passed over or hovered
+    val landmarkPoints = remember(activeFunctions, paramA, shiftC) {
+        val points = mutableListOf<Double>()
+        // 1. Y-Intercept Point (x = 0.0)
+        points.add(0.0)
+
+        // 2. Root points (x-intercepts where y = 0) of graphed functions
+        for (func in activeFunctions) {
+            when (func) {
+                HyperbolicFunc.SINH, HyperbolicFunc.TANH, HyperbolicFunc.ARSINH, HyperbolicFunc.ARTANH -> {
+                    points.add(shiftC)
+                }
+                HyperbolicFunc.ARCOSH -> {
+                    points.add(shiftC + paramA)
+                }
+                else -> {}
+            }
+        }
+        points.distinct()
+    }
+
+    val triggerLandmarkHaptic = remember(view, hapticFeedback, vibrator, isHapticsEnabled) {
+        {
+            if (isHapticsEnabled) {
+                var performed = false
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        performed = view.performHapticFeedback(
+                            HapticFeedbackConstants.CONFIRM,
+                            HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING
+                        )
+                    }
+                    if (!performed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        performed = view.performHapticFeedback(
+                            HapticFeedbackConstants.KEYBOARD_PRESS,
+                            HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING
+                        )
+                    }
+                    if (!performed) {
+                        performed = view.performHapticFeedback(
+                            HapticFeedbackConstants.CLOCK_TICK,
+                            HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING
+                        )
+                    }
+                } catch (_: Exception) {}
+
+                if (!performed) {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && vibrator != null && vibrator.hasVibrator()) {
+                            vibrator.vibrate(VibrationEffect.createOneShot(18, VibrationEffect.DEFAULT_AMPLITUDE))
+                            performed = true
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                if (!performed) {
+                    try {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
     var isTouching by remember { mutableStateOf(false) }
     var touchPoint by remember { mutableStateOf<Offset?>(null) }
 
@@ -272,13 +380,30 @@ fun HyperbolicPlotCanvas(
                         }
                     }
                 } else {
-                    Modifier.pointerInput(bounds) {
+                    Modifier.pointerInput(bounds, isHapticsEnabled, landmarkPoints) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             touchPoint = down.position
                             isTouching = true
-                            val mappedX = bounds.xMin + (down.position.x / size.width) * bounds.xSpan
-                            onScrubChange(mappedX.toDouble().coerceIn(bounds.xMin.toDouble(), bounds.xMax.toDouble()))
+                            val widthPx = size.width.toFloat().coerceAtLeast(1f)
+                            val deltaThreshold = (bounds.xSpan / widthPx) * 12.0 // Proximity snap threshold in data space
+
+                            var prevMappedX: Double? = null
+                            var lastTriggeredLandmark: Double? = null
+
+                            val mappedX = (bounds.xMin + (down.position.x / widthPx) * bounds.xSpan).toDouble()
+                                .coerceIn(bounds.xMin.toDouble(), bounds.xMax.toDouble())
+
+                            // Haptic trigger on initial tap if directly on or near a landmark (Y-intercept or root point)
+                            for (lp in landmarkPoints) {
+                                if (kotlin.math.abs(mappedX - lp) <= deltaThreshold) {
+                                    lastTriggeredLandmark = lp
+                                    triggerLandmarkHaptic()
+                                    break
+                                }
+                            }
+                            prevMappedX = mappedX
+                            onScrubChange(mappedX)
 
                             while (true) {
                                 val event = awaitPointerEvent()
@@ -288,8 +413,38 @@ fun HyperbolicPlotCanvas(
                                     break
                                 }
                                 touchPoint = change.position
-                                val newMappedX = bounds.xMin + (change.position.x / size.width) * bounds.xSpan
-                                onScrubChange(newMappedX.toDouble().coerceIn(bounds.xMin.toDouble(), bounds.xMax.toDouble()))
+                                val newMappedX = (bounds.xMin + (change.position.x / widthPx) * bounds.xSpan).toDouble()
+                                    .coerceIn(bounds.xMin.toDouble(), bounds.xMax.toDouble())
+
+                                val minX = if (prevMappedX != null) kotlin.math.min(prevMappedX, newMappedX) else newMappedX - deltaThreshold
+                                val maxX = if (prevMappedX != null) kotlin.math.max(prevMappedX, newMappedX) else newMappedX + deltaThreshold
+
+                                var matchedLandmark: Double? = null
+                                for (lp in landmarkPoints) {
+                                    val crossed = lp in minX..maxX
+                                    val inProximity = kotlin.math.abs(newMappedX - lp) <= deltaThreshold
+                                    if (crossed || inProximity) {
+                                        matchedLandmark = lp
+                                        break
+                                    }
+                                }
+
+                                if (matchedLandmark != null) {
+                                    if (lastTriggeredLandmark != matchedLandmark) {
+                                        lastTriggeredLandmark = matchedLandmark
+                                        triggerLandmarkHaptic()
+                                    }
+                                } else {
+                                    if (lastTriggeredLandmark != null) {
+                                        val dist = kotlin.math.abs(newMappedX - lastTriggeredLandmark)
+                                        if (dist > deltaThreshold * 1.6) {
+                                            lastTriggeredLandmark = null
+                                        }
+                                    }
+                                }
+
+                                prevMappedX = newMappedX
+                                onScrubChange(newMappedX)
                             }
                             isTouching = false
                         }
@@ -610,6 +765,155 @@ fun HyperbolicPlotCanvas(
                 )
             }
 
+            // 5c. Draw Numerical Differentiation User-Input Function f(x) and Derivative Curves f'(x), f''(x)
+            val diffDiagAtScrub = if (isDiffToolActive && diffParsedExpression != null && scrubX != null) {
+                com.example.model.NumericalDifferentiationEngine.computeCalculusDiagnostics(
+                    expr = diffParsedExpression,
+                    x0 = scrubX,
+                    h = diffStepSizeH,
+                    method = diffMethod,
+                    paramA = paramA,
+                    shiftC = shiftC
+                )
+            } else null
+
+            if (isDiffToolActive && diffParsedExpression != null) {
+                val fxColor = Color(0xFF6366F1) // Indigo
+                val fPrimeColor = Color(0xFF06B6D4) // Cyan
+                val fDoublePrimeColor = Color(0xFFF59E0B) // Amber
+
+                // 1. Draw Function f(x) Curve
+                if (plotDiffFunction) {
+                    val fxPath = Path()
+                    var isFirstFxPoint = true
+                    var prevFxY: Double? = null
+
+                    for (i in 0..numSteps) {
+                        val x = bounds.xMin + i * xStep
+                        val y = com.example.model.NumericalDifferentiationEngine.evalFunction(diffParsedExpression, x, paramA, shiftC)
+                        if (y == null || y.isNaN() || y.isInfinite()) {
+                            isFirstFxPoint = true
+                            prevFxY = null
+                            continue
+                        }
+                        if (prevFxY != null && abs(y - prevFxY) > bounds.ySpan * 2.0) {
+                            isFirstFxPoint = true
+                        }
+                        val px = mapX(x)
+                        val py = mapY(y).coerceIn(-height * 0.5f, height * 1.5f)
+
+                        if (isFirstFxPoint) {
+                            fxPath.moveTo(px, py)
+                            isFirstFxPoint = false
+                        } else {
+                            fxPath.lineTo(px, py)
+                        }
+                        prevFxY = y
+                    }
+
+                    drawPath(
+                        path = fxPath,
+                        color = fxColor,
+                        style = Stroke(width = 7.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
+                }
+
+                // 2. Draw 1st Derivative f'(x) Curve
+                if (plotFirstDerivative) {
+                    val fPrimePath = Path()
+                    var isFirstPrimePoint = true
+                    var prevPrimeY: Double? = null
+
+                    for (i in 0..numSteps) {
+                        val x = bounds.xMin + i * xStep
+                        val yPrime = com.example.model.NumericalDifferentiationEngine.evalFirstDerivative(
+                            diffParsedExpression,
+                            x,
+                            diffStepSizeH,
+                            diffMethod,
+                            paramA,
+                            shiftC
+                        )
+                        if (yPrime == null || yPrime.isNaN() || yPrime.isInfinite()) {
+                            isFirstPrimePoint = true
+                            prevPrimeY = null
+                            continue
+                        }
+                        if (prevPrimeY != null && abs(yPrime - prevPrimeY) > bounds.ySpan * 2.0) {
+                            isFirstPrimePoint = true
+                        }
+                        val px = mapX(x)
+                        val py = mapY(yPrime).coerceIn(-height * 0.5f, height * 1.5f)
+
+                        if (isFirstPrimePoint) {
+                            fPrimePath.moveTo(px, py)
+                            isFirstPrimePoint = false
+                        } else {
+                            fPrimePath.lineTo(px, py)
+                        }
+                        prevPrimeY = yPrime
+                    }
+
+                    drawPath(
+                        path = fPrimePath,
+                        color = fPrimeColor,
+                        style = Stroke(
+                            width = 6.5f,
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 8f), 0f)
+                        )
+                    )
+                }
+
+                // 3. Draw 2nd Derivative f''(x) Curve
+                if (plotSecondDerivative) {
+                    val fDoublePath = Path()
+                    var isFirstDoublePoint = true
+                    var prevDoubleY: Double? = null
+
+                    for (i in 0..numSteps) {
+                        val x = bounds.xMin + i * xStep
+                        val yDouble = com.example.model.NumericalDifferentiationEngine.evalSecondDerivative(
+                            diffParsedExpression,
+                            x,
+                            diffStepSizeH,
+                            paramA,
+                            shiftC
+                        )
+                        if (yDouble == null || yDouble.isNaN() || yDouble.isInfinite()) {
+                            isFirstDoublePoint = true
+                            prevDoubleY = null
+                            continue
+                        }
+                        if (prevDoubleY != null && abs(yDouble - prevDoubleY) > bounds.ySpan * 2.0) {
+                            isFirstDoublePoint = true
+                        }
+                        val px = mapX(x)
+                        val py = mapY(yDouble).coerceIn(-height * 0.5f, height * 1.5f)
+
+                        if (isFirstDoublePoint) {
+                            fDoublePath.moveTo(px, py)
+                            isFirstDoublePoint = false
+                        } else {
+                            fDoublePath.lineTo(px, py)
+                        }
+                        prevDoubleY = yDouble
+                    }
+
+                    drawPath(
+                        path = fDoublePath,
+                        color = fDoublePrimeColor,
+                        style = Stroke(
+                            width = 5.0f,
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
+                        )
+                    )
+                }
+            }
+
             // 6. Draw Interactive Crosshair Cursor and Precision (x, y) Coordinate HUD
             scrubX?.let { xVal ->
                 if (xVal in bounds.xMin.toDouble()..bounds.xMax.toDouble()) {
@@ -764,7 +1068,116 @@ fun HyperbolicPlotCanvas(
                     // 6f. First Derivative Slope Tangent Line Visualization
                     var tangentSlope: Double? = null
                     var tangentAngleDeg: Double? = null
-                    if (showTangentLine) {
+
+                    // 6f-1. Custom Numerical Differentiation Tangent Line
+                    if (isDiffToolActive && diffDiagAtScrub != null && showDiffTangentLine) {
+                        val tanY0 = diffDiagAtScrub.fx0
+                        val slopeM = diffDiagAtScrub.tangentSlopeM
+                        tangentSlope = slopeM
+                        tangentAngleDeg = diffDiagAtScrub.slopeAngleDeg
+
+                        val xLeft = bounds.xMin.toDouble()
+                        val yLeft = slopeM * (xLeft - xVal) + tanY0
+                        val xRight = bounds.xMax.toDouble()
+                        val yRight = slopeM * (xRight - xVal) + tanY0
+
+                        val pStart = Offset(mapX(xLeft), mapY(yLeft))
+                        val pEnd = Offset(mapX(xRight), mapY(yRight))
+                        val pContact = Offset(scrubPx, mapY(tanY0))
+
+                        // Tangent line outer glow (fuchsia / pink)
+                        drawLine(
+                            color = Color(0xFFEC4899).copy(alpha = 0.35f),
+                            start = pStart,
+                            end = pEnd,
+                            strokeWidth = 8f,
+                            cap = StrokeCap.Round
+                        )
+
+                        // Main sharp tangent line
+                        drawLine(
+                            color = Color(0xFFEC4899),
+                            start = pStart,
+                            end = pEnd,
+                            strokeWidth = 3.5f,
+                            cap = StrokeCap.Round
+                        )
+
+                        // Tangent contact point emphasis ring
+                        drawCircle(
+                            color = Color(0xFFEC4899).copy(alpha = 0.40f),
+                            radius = 18f,
+                            center = pContact
+                        )
+                        drawCircle(
+                            color = Color(0xFFF472B6),
+                            radius = 11f,
+                            center = pContact,
+                            style = Stroke(width = 2.5f)
+                        )
+                        drawCircle(
+                            color = Color.White,
+                            radius = 5.5f,
+                            center = pContact
+                        )
+
+                        // Floating tangent slope badge
+                        val badgeText = "f'(x₀) = ${String.format(Locale.US, "%+.3f", slopeM)} (θ=${String.format(Locale.US, "%.1f°", diffDiagAtScrub.slopeAngleDeg)})"
+                        val badgeW = 280f
+                        val badgeH = 34f
+                        val badgeX = (pContact.x - badgeW / 2f).coerceIn(12f, width - badgeW - 12f)
+                        val badgeY = if (pContact.y < 60f) (pContact.y + 24f).coerceAtMost(height - badgeH - 12f) else (pContact.y - badgeH - 16f).coerceAtLeast(12f)
+
+                        drawContext.canvas.nativeCanvas.drawRoundRect(
+                            badgeX,
+                            badgeY,
+                            badgeX + badgeW,
+                            badgeY + badgeH,
+                            10f,
+                            10f,
+                            tangentBadgeBgPaint
+                        )
+                        drawContext.canvas.nativeCanvas.drawRoundRect(
+                            badgeX,
+                            badgeY,
+                            badgeX + badgeW,
+                            badgeY + badgeH,
+                            10f,
+                            10f,
+                            tangentBadgeBorderPaint
+                        )
+                        drawContext.canvas.nativeCanvas.drawText(
+                            badgeText,
+                            badgeX + 12f,
+                            badgeY + 24f,
+                            tangentBadgeTextPaint
+                        )
+                    }
+
+                    // 6f-2. Custom Numerical Differentiation Normal Line
+                    if (isDiffToolActive && diffDiagAtScrub != null && showDiffNormalLine && abs(diffDiagAtScrub.tangentSlopeM) > 1e-5) {
+                        val tanY0 = diffDiagAtScrub.fx0
+                        val normalM = -1.0 / diffDiagAtScrub.tangentSlopeM
+                        val xLeft = bounds.xMin.toDouble()
+                        val yLeft = normalM * (xLeft - xVal) + tanY0
+                        val xRight = bounds.xMax.toDouble()
+                        val yRight = normalM * (xRight - xVal) + tanY0
+
+                        val pStart = Offset(mapX(xLeft), mapY(yLeft))
+                        val pEnd = Offset(mapX(xRight), mapY(yRight))
+
+                        drawLine(
+                            color = Color(0xFF94A3B8),
+                            start = pStart,
+                            end = pEnd,
+                            strokeWidth = 2.5f,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f),
+                            cap = StrokeCap.Round
+                        )
+                    }
+
+                    // 6f-3. Standard Primary Hyperbolic Function Tangent Line
+                    if (showTangentLine && !isDiffToolActive) {
                         val targetTangentFunc = primaryFunc ?: activeFunctions.firstOrNull()
                         if (targetTangentFunc != null) {
                             val tanY0 = targetTangentFunc.evaluate(xVal, paramA, shiftC)
@@ -892,19 +1305,48 @@ fun HyperbolicPlotCanvas(
 
                     // 6g. Floating Precision Coordinate HUD Badge
                     val displayEntries = mutableListOf<String>()
-                    val headerText = if (showTangentLine) "CROSSHAIR & TANGENT SLOPE" else "CROSSHAIR (x, y)"
+
+                    val proximityThreshold = bounds.xSpan * 0.025
+                    val isNearYInt = kotlin.math.abs(xVal - 0.0) <= proximityThreshold
+                    val isNearRoot = activeFunctions.any { func ->
+                        when (func) {
+                            HyperbolicFunc.SINH, HyperbolicFunc.TANH, HyperbolicFunc.ARSINH, HyperbolicFunc.ARTANH ->
+                                kotlin.math.abs(xVal - shiftC) <= proximityThreshold
+                            HyperbolicFunc.ARCOSH ->
+                                kotlin.math.abs(xVal - (shiftC + paramA)) <= proximityThreshold
+                            else -> false
+                        }
+                    }
+
+                    val headerText = when {
+                        isDiffToolActive -> "🎯 NUMERICAL DERIVATIVE (x₀)"
+                        isNearYInt && isNearRoot -> "🎯 Y-INTERCEPT & ROOT (0, 0)"
+                        isNearYInt -> "🎯 Y-INTERCEPT (x = 0)"
+                        isNearRoot -> "🎯 ROOT POINT (y = 0)"
+                        showTangentLine -> "CROSSHAIR & TANGENT SLOPE"
+                        else -> "CROSSHAIR (x, y)"
+                    }
                     displayEntries.add("x = ${String.format(Locale.US, "%+.3f", xVal)}")
 
-                    for ((func, yVal) in curvePoints.take(3)) {
-                        displayEntries.add("${func.displayName} = ${String.format(Locale.US, "%+.3f", yVal)}")
+                    if (isDiffToolActive && diffDiagAtScrub != null) {
+                        displayEntries.add("f(x) = ${diffDiagAtScrub.formattedFx0}")
+                        displayEntries.add("f'(x) = ${diffDiagAtScrub.formattedFPrime0} (slope)")
+                        if (plotSecondDerivative) {
+                            displayEntries.add("f''(x) = ${diffDiagAtScrub.formattedFDoublePrime0} (${diffDiagAtScrub.concavity.displayName.take(12)})")
+                        }
+                    } else {
+                        for ((func, yVal) in curvePoints.take(3)) {
+                            displayEntries.add("${func.displayName} = ${String.format(Locale.US, "%+.3f", yVal)}")
+                        }
                     }
+
                     if (effectiveAlpha > 0.05f && morphedProbeY != null) {
                         displayEntries.add("para = ${String.format(Locale.US, "%+.3f", morphedProbeY)}")
                         probeDelta?.let { d ->
                             displayEntries.add("Δy = ${if (d >= 0) "+" else ""}${String.format(Locale.US, "%.3f", d)}")
                         }
                     }
-                    if (showTangentLine && tangentSlope != null) {
+                    if (showTangentLine && !isDiffToolActive && tangentSlope != null) {
                         displayEntries.add("dy/dx = ${String.format(Locale.US, "%+.3f", tangentSlope)} (slope)")
                         tangentAngleDeg?.let { deg ->
                             displayEntries.add("Angle θ = ${String.format(Locale.US, "%+.1f°", deg)}")

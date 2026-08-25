@@ -1,6 +1,6 @@
 {
-  "name": "Remix Hyperbolic \u0026 Catenary Studio",
-  "description": "Interactive hyperbolic function grapher and catenary cable physics calculator with live coordinate inspection and calculus references.",
+  "name": "Hyperbolic & Catenary Studio",
+  "description": "Interactive hyperbolic function grapher, numerical equation root finder, catenary cable physics simulator, and Gemini AI math assistant.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

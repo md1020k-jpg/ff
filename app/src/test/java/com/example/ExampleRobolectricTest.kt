@@ -68,4 +68,22 @@ class ExampleRobolectricTest {
     viewModel.setDarkTheme(true)
     assertEquals(true, viewModel.uiState.value.isDarkTheme)
   }
+
+  @Test
+  fun `verify gemini chat state and model selection`() {
+    val viewModel = com.example.ui.HyperbolicViewModel()
+    assertEquals(com.example.data.GeminiModelChoice.FLASH_SEARCH, viewModel.uiState.value.selectedGeminiModel)
+    assertEquals(true, viewModel.uiState.value.isSearchGroundingEnabled)
+    assertEquals(1, viewModel.uiState.value.chatMessages.size)
+
+    viewModel.selectGeminiModel(com.example.data.GeminiModelChoice.PRO_MATH)
+    assertEquals(com.example.data.GeminiModelChoice.PRO_MATH, viewModel.uiState.value.selectedGeminiModel)
+
+    viewModel.toggleSearchGrounding(false)
+    assertEquals(false, viewModel.uiState.value.isSearchGroundingEnabled)
+
+    viewModel.clearChat()
+    assertEquals(1, viewModel.uiState.value.chatMessages.size)
+  }
 }
+
