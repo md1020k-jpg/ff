@@ -696,15 +696,25 @@
   <!-- Interactive Plot Engine Script -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Render LaTeX equations via KaTeX
-      if (window.renderMathInElement) {
-        renderMathInElement(document.body, {
-          delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '\\(', right: '\\)', display: false}
-          ]
-        });
+      // Render LaTeX equations via KaTeX with fallback retry
+      function initMath() {
+        if (window.renderMathInElement) {
+          try {
+            renderMathInElement(document.body, {
+              delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '\\(', right: '\\)', display: false}
+              ],
+              throwOnError: false
+            });
+          } catch (e) {
+            console.warn('KaTeX rendering notice:', e);
+          }
+        } else {
+          setTimeout(initMath, 150);
+        }
       }
+      initMath();
 
       // Canvas Setup
       const canvas = document.getElementById('plotCanvas');
