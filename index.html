@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hyperbolic Explorer — Interactive Hyperbolic Functions & Calculus</title>
+  <meta name="description" content="Explore hyperbolic functions (cosh, sinh, tanh, sech, csch, coth), tangent lines, derivatives, catenary physics, and download the Android APK." />
+  
+  <!-- Google Fonts & KaTeX for LaTeX Math -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #131b2e;
+      --surface-variant: #1c2742;
+      --surface-border: #28375a;
+      --primary: #818cf8;
+      --primary-variant: #6366f1;
+      --primary-glow: rgba(129, 140, 248, 0.25);
+      --secondary: #38bdf8;
+      --accent: #f43f5e;
+      --accent-glow: rgba(244, 63, 94, 0.25);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --cosh-color: #38bdf8;
+      --sinh-color: #f43f5e;
+      --tanh-color: #34d399;
+      --sech-color: #fbbf24;
+      --csch-color: #a855f7;
+      --coth-color: #ec4899;
+      --parabola-color: #94a3b8;
+      --tangent-color: #f59e0b;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow: 0 10px 30px -10px rgba(0,0,0,0.6);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Header */
+    header {
+      background: rgba(19, 27, 46, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--surface-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: #0b0f19;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .brand-title h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.15rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-variant));
+      color: #ffffff;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(129, 140, 248, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--surface-variant);
+      color: var(--text);
+      border-color: var(--surface-border);
+    }
+
+    .btn-secondary:hover {
+      background: #233152;
+      border-color: var(--primary);
+    }
+
+    /* Main Grid Layout */
+    .app-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Canvas / Plot Section */
+    .plot-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Function Selection Chips */
+    .chip-container {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+      scrollbar-width: thin;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--surface-variant);
+      color: var(--text-muted);
+      border: 1px solid var(--surface-border);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .chip:hover {
+      color: var(--text);
+      border-color: var(--primary);
+    }
+
+    .chip.active {
+      background: var(--primary);
+      color: #0b0f19;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .chip-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Canvas Container */
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 520px;
+      background: #090d16;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--surface-border);
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Floating HUD overlay */
+    .canvas-hud {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(19, 27, 46, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.9rem;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      pointer-events: none;
+    }
+
+    .hud-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hud-coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .hud-slope {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--tangent-color);
+      font-size: 0.75rem;
+    }
+
+    /* Plot Controls Toolbar */
+    .plot-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-label input {
+      accent-color: var(--primary);
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+
+    .toggle-label:hover {
+      color: var(--text);
+    }
+
+    /* Sidebar Panels */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* Inspector Card */
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .stat-box {
+      background: var(--surface-variant);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .formula-badge {
+      background: rgba(129, 140, 248, 0.1);
+      border: 1px solid var(--primary-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--primary);
+    }
+
+    /* Calculus Section */
+    .derivation-item {
+      background: var(--surface-variant);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.6rem;
+      border: 1px solid var(--surface-border);
+    }
+
+    .derivation-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--secondary);
+      margin-bottom: 0.25rem;
+    }
+
+    /* Catenary Physics Interactive Section */
+    .slider-control {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .slider-header span:last-child {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    /* Release APK Download Banner */
+    .download-banner {
+      background: linear-gradient(135deg, #1e1b4b, #2e1065);
+      border: 1px solid #6366f1;
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .download-text h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .download-text p {
+      font-size: 0.85rem;
+      color: #c7d2fe;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--surface-border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 3rem;
+      background: rgba(19, 27, 46, 0.5);
+    }
+
+    footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-icon">∿</div>
+      <div class="brand-title">
+        <h1>Hyperbolic Explorer</h1>
+        <p>Mathematical Visualizer & Calculus Engine</p>
+      </div>
+    </a>
+    <div class="header-actions">
+      <a href="https://github.com/md1020k-jpg/Hyper-bola-1/releases" target="_blank" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Android APK
+      </a>
+      <a href="https://github.com/md1020k-jpg/Hyper-bola-1" target="_blank" class="btn btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="app-container">
+    
+    <!-- Left Column: Interactive Coordinate Plane & Controls -->
+    <section class="plot-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Function Grapher</span>
+          </div>
+          <!-- Function Tabs -->
+          <div class="chip-container" id="functionChips">
+            <button class="chip active" data-func="cosh"><span class="chip-indicator"></span>cosh(x)</button>
+            <button class="chip" data-func="sinh"><span class="chip-indicator"></span>sinh(x)</button>
+            <button class="chip" data-func="tanh"><span class="chip-indicator"></span>tanh(x)</button>
+            <button class="chip" data-func="sech"><span class="chip-indicator"></span>sech(x)</button>
+            <button class="chip" data-func="csch"><span class="chip-indicator"></span>csch(x)</button>
+            <button class="chip" data-func="coth"><span class="chip-indicator"></span>coth(x)</button>
+          </div>
+        </div>
+
+        <!-- Canvas Visualizer -->
+        <div class="canvas-wrapper" id="canvasContainer">
+          <canvas id="plotCanvas"></canvas>
+          <div class="canvas-hud" id="hud">
+            <div class="hud-title" id="hudFunction">f(x) = cosh(x)</div>
+            <div class="hud-coords" id="hudCoords">x: 0.00, y: 1.00</div>
+            <div class="hud-slope" id="hudSlope">Slope dy/dx: 0.00 (θ = 0.0°)</div>
+          </div>
+        </div>
+
+        <!-- Canvas Toolbar Options -->
+        <div class="plot-toolbar">
+          <div class="toggle-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleTangent" checked />
+              <span>Tangent Line (dy/dx)</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleParabola" />
+              <span>Compare with Parabola (1 + x²/2)</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleAsymptotes" checked />
+              <span>Asymptotes</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleSlopeTriangle" checked />
+              <span>Slope Triangle</span>
+            </label>
+          </div>
+          <div class="toggle-group">
+            <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.75rem;" id="resetViewBtn">Reset Origin</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Identity Verification Banner -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Fundamental Hyperbolic Identities</span>
+          </div>
+        </div>
+        <div class="inspector-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+          <div class="stat-box">
+            <span class="stat-label">Pythagorean-Analog</span>
+            <div id="mathIdentity1">$$\cosh^2(x) - \sinh^2(x) = 1$$</div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Tangent-Secant</span>
+            <div id="mathIdentity2">$$1 - \tanh^2(x) = \operatorname{sech}^2(x)$$</div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Cotangent-Cosecant</span>
+            <div id="mathIdentity3">$$\coth^2(x) - \operatorname{csch}^2(x) = 1$$</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Live Point Inspector, Calculus & Catenary -->
+    <aside class="sidebar">
+      
+      <!-- Coordinate Point Inspector -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Point Inspector</span>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Hover/Touch Canvas</span>
+        </div>
+        <div class="inspector-grid">
+          <div class="stat-box">
+            <span class="stat-label">Input (x)</span>
+            <span class="stat-value" id="inspectX">0.00</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Output f(x)</span>
+            <span class="stat-value" id="inspectY">1.00</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">1st Derivative f'(x)</span>
+            <span class="stat-value" id="inspectDerivative" style="color: var(--tangent-color);">0.00</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Tangent Angle (θ)</span>
+            <span class="stat-value" id="inspectAngle">0.0°</span>
+          </div>
+        </div>
+        <div class="formula-badge" id="pointSlopeEq">
+          Tangent: y = 0.00(x - 0.00) + 1.00
+        </div>
+      </div>
+
+      <!-- Catenary Bridge Physics Simulation -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Catenary Physics Simulator</span>
+          </div>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          The hanging curve of a cable under uniform gravity is given by \( y(x) = a \cosh(x/a) - a \).
+        </p>
+        
+        <div class="slider-control">
+          <div class="slider-header">
+            <span>Scaling Parameter (a)</span>
+            <span id="paramAVal">2.0</span>
+          </div>
+          <input type="range" id="paramASlider" min="0.5" max="5.0" step="0.1" value="2.0" />
+        </div>
+
+        <div class="slider-control">
+          <div class="slider-header">
+            <span>Bridge Span (L)</span>
+            <span id="spanVal">8.0 m</span>
+          </div>
+          <input type="range" id="spanSlider" min="2.0" max="14.0" step="0.5" value="8.0" />
+        </div>
+
+        <div class="inspector-grid" style="margin-top: 0.5rem;">
+          <div class="stat-box">
+            <span class="stat-label">Max Cable Sag</span>
+            <span class="stat-value" id="cableSag">5.53 m</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Arc Length</span>
+            <span class="stat-value" id="cableLength">11.23 m</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculus Reference Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Derivatives & Integrals</span>
+          </div>
+        </div>
+        <div class="derivation-item">
+          <div class="derivation-title">Hyperbolic Cosine & Sine</div>
+          <div style="font-size: 0.8rem;">
+            \(\frac{d}{dx}\cosh(x) = \sinh(x)\)<br>
+            \(\frac{d}{dx}\sinh(x) = \cosh(x)\)
+          </div>
+        </div>
+        <div class="derivation-item">
+          <div class="derivation-title">Hyperbolic Tangent</div>
+          <div style="font-size: 0.8rem;">
+            \(\frac{d}{dx}\tanh(x) = \operatorname{sech}^2(x)\)
+          </div>
+        </div>
+        <div class="derivation-item">
+          <div class="derivation-title">Hyperbolic Secant</div>
+          <div style="font-size: 0.8rem;">
+            \(\frac{d}{dx}\operatorname{sech}(x) = -\operatorname{sech}(x)\tanh(x)\)
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- Download APK Section Banner -->
+  <div style="max-width: 1440px; margin: 0 auto; padding: 0 1.5rem;">
+    <div class="download-banner">
+      <div class="download-text">
+        <h3>Install the Android Native App</h3>
+        <p>Get offline access, haptic crosshair dragging, dynamic themes, and full calculus engine on your phone.</p>
+      </div>
+      <a href="https://github.com/md1020k-jpg/Hyper-bola-1/releases/tag/v1.0.0" target="_blank" class="btn btn-primary" style="font-size: 1rem; padding: 0.75rem 1.5rem;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download v1.0.0 APK
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Hyperbolic Explorer &bull; Built with Kotlin Jetpack Compose & HTML5 Canvas &bull; <a href="https://github.com/md1020k-jpg/Hyper-bola-1" target="_blank">View on GitHub</a></p>
+  </footer>
+
+  <!-- Interactive Plot Engine Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Render LaTeX equations via KaTeX
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '\\(', right: '\\)', display: false}
+          ]
+        });
+      }
+
+      // Canvas Setup
+      const canvas = document.getElementById('plotCanvas');
+      const ctx = canvas.getContext('2d');
+      const container = document.getElementById('canvasContainer');
+
+      // State
+      let currentFunction = 'cosh';
+      let showTangent = true;
+      let showParabola = false;
+      let showAsymptotes = true;
+      let showSlopeTriangle = true;
+
+      // Coordinate Transform
+      let scale = 50; // pixels per unit
+      let originX = 0;
+      let originY = 0;
+      let cursorX = 1.0; // math coordinate
+
+      // Function Definitions & Derivatives
+      const functions = {
+        cosh: {
+          name: 'cosh(x)',
+          latex: 'f(x) = \\cosh(x)',
+          eval: (x) => Math.cosh(x),
+          deriv: (x) => Math.sinh(x),
+          color: '#38bdf8'
+        },
+        sinh: {
+          name: 'sinh(x)',
+          latex: 'f(x) = \\sinh(x)',
+          eval: (x) => Math.sinh(x),
+          deriv: (x) => Math.cosh(x),
+          color: '#f43f5e'
+        },
+        tanh: {
+          name: 'tanh(x)',
+          latex: 'f(x) = \\tanh(x)',
+          eval: (x) => Math.tanh(x),
+          deriv: (x) => 1 / (Math.cosh(x) * Math.cosh(x)),
+          color: '#34d399'
+        },
+        sech: {
+          name: 'sech(x)',
+          latex: 'f(x) = \\operatorname{sech}(x)',
+          eval: (x) => 1 / Math.cosh(x),
+          deriv: (x) => -Math.tanh(x) / Math.cosh(x),
+          color: '#fbbf24'
+        },
+        csch: {
+          name: 'csch(x)',
+          latex: 'f(x) = \\operatorname{csch}(x)',
+          eval: (x) => (x === 0 ? NaN : 1 / Math.sinh(x)),
+          deriv: (x) => (x === 0 ? NaN : -Math.cosh(x) / (Math.sinh(x) * Math.sinh(x))),
+          color: '#a855f7'
+        },
+        coth: {
+          name: 'coth(x)',
+          latex: 'f(x) = \\coth(x)',
+          eval: (x) => (x === 0 ? NaN : Math.cosh(x) / Math.sinh(x)),
+          deriv: (x) => (x === 0 ? NaN : -1 / (Math.sinh(x) * Math.sinh(x))),
+          color: '#ec4899'
+        }
+      };
+
+      // Resize & HiDPI Canvas
+      function resizeCanvas() {
+        const rect = container.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        originX = rect.width / 2;
+        originY = rect.height / 2;
+        draw();
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+
+      // Coordinate Transforms
+      function toScreenX(x) { return originX + x * scale; }
+      function toScreenY(y) { return originY - y * scale; }
+      function toMathX(px) { return (px - originX) / scale; }
+      function toMathY(py) { return (originY - py) / scale; }
+
+      // Main Render Loop
+      function draw() {
+        const width = canvas.width / (window.devicePixelRatio || 1);
+        const height = canvas.height / (window.devicePixelRatio || 1);
+
+        // Clear Canvas
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw Grid
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#18243b';
+        ctx.fillStyle = '#64748b';
+        ctx.font = '11px JetBrains Mono, monospace';
+
+        const minX = Math.floor(toMathX(0));
+        const maxX = Math.ceil(toMathX(width));
+        const minY = Math.floor(toMathY(height));
+        const maxY = Math.ceil(toMathY(0));
+
+        // Vertical gridlines
+        for (let x = minX; x <= maxX; x++) {
+          const sx = toScreenX(x);
+          ctx.beginPath();
+          ctx.moveTo(sx, 0);
+          ctx.lineTo(sx, height);
+          ctx.stroke();
+
+          if (x !== 0 && sx > 20 && sx < width - 20) {
+            ctx.fillText(x.toString(), sx + 4, originY - 6);
+          }
+        }
+
+        // Horizontal gridlines
+        for (let y = minY; y <= maxY; y++) {
+          const sy = toScreenY(y);
+          ctx.beginPath();
+          ctx.moveTo(0, sy);
+          ctx.lineTo(width, sy);
+          ctx.stroke();
+
+          if (y !== 0 && sy > 20 && sy < height - 20) {
+            ctx.fillText(y.toString(), originX + 6, sy - 4);
+          }
+        }
+
+        // Coordinate Axes
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+
+        // X-Axis
+        ctx.beginPath();
+        ctx.moveTo(0, originY);
+        ctx.lineTo(width, originY);
+        ctx.stroke();
+
+        // Y-Axis
+        ctx.beginPath();
+        ctx.moveTo(originX, 0);
+        ctx.lineTo(originX, height);
+        ctx.stroke();
+
+        // Asymptotes
+        if (showAsymptotes) {
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 6]);
+
+          if (currentFunction === 'tanh' || currentFunction === 'coth') {
+            const y1 = toScreenY(1);
+            const ym1 = toScreenY(-1);
+            ctx.beginPath(); ctx.moveTo(0, y1); ctx.lineTo(width, y1); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, ym1); ctx.lineTo(width, ym1); ctx.stroke();
+          } else if (currentFunction === 'csch' || currentFunction === 'coth') {
+            ctx.beginPath(); ctx.moveTo(originX, 0); ctx.lineTo(originX, height); ctx.stroke();
+          }
+          ctx.setLineDash([]);
+        }
+
+        // Optional Parabola Comparison
+        if (showParabola) {
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          let started = false;
+          for (let px = 0; px <= width; px += 2) {
+            const mx = toMathX(px);
+            const my = 1 + (mx * mx) / 2;
+            const py = toScreenY(my);
+            if (!started) { ctx.moveTo(px, py); started = true; }
+            else { ctx.lineTo(px, py); }
+          }
+          ctx.stroke();
+        }
+
+        // Active Curve Plot
+        const fn = functions[currentFunction];
+        ctx.strokeStyle = fn.color;
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = fn.color;
+        ctx.shadowBlur = 12;
+
+        ctx.beginPath();
+        let isDrawing = false;
+        const step = 2;
+
+        for (let px = 0; px <= width; px += step) {
+          const mx = toMathX(px);
+          const my = fn.eval(mx);
+
+          if (!isNaN(my) && isFinite(my) && Math.abs(my) < 50) {
+            const py = toScreenY(my);
+            if (!isDrawing) {
+              ctx.moveTo(px, py);
+              isDrawing = true;
+            } else {
+              ctx.lineTo(px, py);
+            }
+          } else {
+            isDrawing = false;
+          }
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset glow
+
+        // Crosshair & Tangent Line Calculations
+        const cy = fn.eval(cursorX);
+        const slope = fn.deriv(cursorX);
+
+        if (!isNaN(cy) && isFinite(cy)) {
+          const scx = toScreenX(cursorX);
+          const scy = toScreenY(cy);
+
+          // Tangent Line
+          if (showTangent && !isNaN(slope) && isFinite(slope)) {
+            const tX1 = toMathX(0);
+            const tY1 = cy + slope * (tX1 - cursorX);
+            const tX2 = toMathX(width);
+            const tY2 = cy + slope * (tX2 - cursorX);
+
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.moveTo(toScreenX(tX1), toScreenY(tY1));
+            ctx.lineTo(toScreenX(tX2), toScreenY(tY2));
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Slope Step Triangle
+            if (showSlopeTriangle) {
+              const dx = 1.0;
+              const dy = slope * dx;
+              const p1x = scx;
+              const p1y = scy;
+              const p2x = toScreenX(cursorX + dx);
+              const p2y = p1y;
+              const p3x = p2x;
+              const p3y = toScreenY(cy + dy);
+
+              ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+              ctx.beginPath();
+              ctx.moveTo(p1x, p1y);
+              ctx.lineTo(p2x, p2y);
+              ctx.lineTo(p3x, p3y);
+              ctx.closePath();
+              ctx.fill();
+
+              ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            }
+          }
+
+          // Crosshair Dot & Pulsing Ring
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(scx, scy, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = fn.color;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(scx, scy, 9, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Update UI Badges & HUD
+        updateHUDAndInspector(cursorX, cy, slope);
+      }
+
+      function updateHUDAndInspector(x, y, slope) {
+        const deg = (Math.atan(slope) * 180 / Math.PI).toFixed(1);
+        const yStr = (!isNaN(y) && isFinite(y)) ? y.toFixed(3) : 'Undefined';
+        const slopeStr = (!isNaN(slope) && isFinite(slope)) ? slope.toFixed(3) : 'Undefined';
+
+        document.getElementById('hudFunction').innerText = `f(x) = ${functions[currentFunction].name}`;
+        document.getElementById('hudCoords').innerText = `x: ${x.toFixed(2)}, y: ${yStr}`;
+        document.getElementById('hudSlope').innerText = `Slope dy/dx: ${slopeStr} (θ = ${deg}°)`;
+
+        document.getElementById('inspectX').innerText = x.toFixed(2);
+        document.getElementById('inspectY').innerText = yStr;
+        document.getElementById('inspectDerivative').innerText = slopeStr;
+        document.getElementById('inspectAngle').innerText = `${deg}°`;
+
+        if (!isNaN(y) && !isNaN(slope)) {
+          document.getElementById('pointSlopeEq').innerText = 
+            `Tangent: y = ${slope.toFixed(2)}(x - ${x.toFixed(2)}) + ${y.toFixed(2)}`;
+        }
+      }
+
+      // Mouse & Touch Event Handlers
+      function handlePointerMove(e) {
+        const rect = container.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const px = clientX - rect.left;
+        cursorX = toMathX(px);
+        draw();
+      }
+
+      container.addEventListener('mousemove', handlePointerMove);
+      container.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        handlePointerMove(e);
+      }, { passive: false });
+
+      // Chip Selector
+      document.querySelectorAll('#functionChips .chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          document.querySelectorAll('#functionChips .chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          currentFunction = chip.dataset.func;
+          draw();
+        });
+      });
+
+      // Toolbar Toggles
+      document.getElementById('toggleTangent').addEventListener('change', (e) => {
+        showTangent = e.target.checked;
+        draw();
+      });
+      document.getElementById('toggleParabola').addEventListener('change', (e) => {
+        showParabola = e.target.checked;
+        draw();
+      });
+      document.getElementById('toggleAsymptotes').addEventListener('change', (e) => {
+        showAsymptotes = e.target.checked;
+        draw();
+      });
+      document.getElementById('toggleSlopeTriangle').addEventListener('change', (e) => {
+        showSlopeTriangle = e.target.checked;
+        draw();
+      });
+      document.getElementById('resetViewBtn').addEventListener('click', () => {
+        cursorX = 0.0;
+        draw();
+      });
+
+      // Catenary Simulation Logic
+      const paramASlider = document.getElementById('paramASlider');
+      const spanSlider = document.getElementById('spanSlider');
+
+      function updateCatenary() {
+        const a = parseFloat(paramASlider.value);
+        const L = parseFloat(spanSlider.value);
+        document.getElementById('paramAVal').innerText = a.toFixed(1);
+        document.getElementById('spanVal').innerText = `${L.toFixed(1)} m`;
+
+        const sag = a * Math.cosh((L / 2) / a) - a;
+        const arcLen = 2 * a * Math.sinh((L / 2) / a);
+
+        document.getElementById('cableSag').innerText = `${sag.toFixed(2)} m`;
+        document.getElementById('cableLength').innerText = `${arcLen.toFixed(2)} m`;
+      }
+
+      paramASlider.addEventListener('input', updateCatenary);
+      spanSlider.addEventListener('input', updateCatenary);
+
+      // Initial Setup
+      resizeCanvas();
+      updateCatenary();
+    });
+  </script>
+</body>
+</html>
