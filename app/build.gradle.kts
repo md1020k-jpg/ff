@@ -125,6 +125,21 @@ android {
   }
 }
 
+// Sync system environment GEMINI_API_KEY to .env file if available
+val envGeminiKey: String? = System.getenv("GEMINI_API_KEY") ?: (project.findProperty("GEMINI_API_KEY") as? String)
+if (!envGeminiKey.isNullOrBlank()) {
+  val envFile = rootProject.file(".env")
+  val existingContent = if (envFile.exists()) envFile.readText() else ""
+  if (!existingContent.contains("GEMINI_API_KEY=") || existingContent.contains("GEMINI_API_KEY=MY_GEMINI_API_KEY") || existingContent.contains("GEMINI_API_KEY=\n")) {
+    val updatedContent = if (existingContent.contains("GEMINI_API_KEY=")) {
+      existingContent.replace(Regex("GEMINI_API_KEY=.*"), "GEMINI_API_KEY=$envGeminiKey")
+    } else {
+      "$existingContent\nGEMINI_API_KEY=$envGeminiKey\n".trim() + "\n"
+    }
+    envFile.writeText(updatedContent)
+  }
+}
+
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 secrets {
   propertiesFileName = ".env"

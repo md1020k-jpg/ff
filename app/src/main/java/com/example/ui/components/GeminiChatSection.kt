@@ -85,6 +85,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.ChatMessage
+import com.example.data.GeminiApiKeyProvider
 import com.example.data.GeminiModelChoice
 import com.example.data.MessageSender
 import com.example.data.WebSource
@@ -284,12 +285,33 @@ fun GeminiChatSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "AI Mathematical & Catenary Specialist",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "AI Specialist",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (GeminiApiKeyProvider.isKeyConfigured()) {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            } else {
+                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
+                            }
+                        ) {
+                            Text(
+                                text = if (GeminiApiKeyProvider.isKeyConfigured()) "Key: ${GeminiApiKeyProvider.getMaskedKey()}" else "No Key",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 9.sp,
+                                color = if (GeminiApiKeyProvider.isKeyConfigured()) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
 
                     Surface(
                         onClick = onSendCurrentAppContext,

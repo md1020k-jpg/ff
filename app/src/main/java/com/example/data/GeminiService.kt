@@ -61,15 +61,11 @@ object GeminiClient {
         modelChoice: GeminiModelChoice,
         enableSearchGrounding: Boolean = true
     ): Result<ChatMessage> = withContext(Dispatchers.IO) {
-        val apiKey = try {
-            BuildConfig.GEMINI_API_KEY
-        } catch (e: Exception) {
-            ""
-        }
+        val apiKey = GeminiApiKeyProvider.getApiKey()
 
-        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
+        if (apiKey.isBlank() || !GeminiApiKeyProvider.isKeyConfigured()) {
             return@withContext Result.failure(
-                IllegalStateException("Gemini API key is not configured. Please add your key in the AI Studio Secrets panel.")
+                IllegalStateException("Gemini API key is not configured. Please add your key in the AI Studio Secrets panel or .env file.")
             )
         }
 
