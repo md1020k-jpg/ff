@@ -475,6 +475,44 @@ fun HyperbolicPlotCanvas(
                 )
             }
 
+            // 5a. Visually highlight intersection points with X and Y axes
+            for (func in activeFunctions) {
+                val intercepts = mutableListOf<Pair<Double, Double>>()
+                
+                // Y-axis intersection (x = 0)
+                val yIntercept = func.evaluate(0.0, paramA, shiftC)
+                if (yIntercept != null && !yIntercept.isNaN() && !yIntercept.isInfinite()) {
+                    intercepts.add(0.0 to yIntercept)
+                }
+                
+                // X-axis intersection (y = 0)
+                val xRoots = when (func) {
+                    HyperbolicFunc.SINH, HyperbolicFunc.TANH, HyperbolicFunc.ARSINH, HyperbolicFunc.ARTANH -> listOf(shiftC)
+                    HyperbolicFunc.ARCOSH -> listOf(shiftC + paramA)
+                    else -> emptyList()
+                }
+                
+                for (xRoot in xRoots) {
+                    val yVal = func.evaluate(xRoot, paramA, shiftC)
+                    if (yVal != null && !yVal.isNaN() && !yVal.isInfinite() && abs(yVal) < 1e-3) {
+                        // Prevent duplicate if already added by Y-intercept (e.g., origin)
+                        if (intercepts.none { abs(it.first - xRoot) < 1e-3 && abs(it.second - 0.0) < 1e-3 }) {
+                            intercepts.add(xRoot to 0.0)
+                        }
+                    }
+                }
+                
+                for ((xInt, yInt) in intercepts) {
+                    val px = mapX(xInt)
+                    val py = mapY(yInt)
+                    if (py in -15f..(height + 15f) && px in -15f..(width + 15f)) {
+                        drawCircle(color = func.color.copy(alpha = 0.45f), radius = 14f, center = Offset(px, py))
+                        drawCircle(color = Color.White, radius = 8f, center = Offset(px, py))
+                        drawCircle(color = func.color, radius = 5f, center = Offset(px, py))
+                    }
+                }
+            }
+
             // 5b. Draw Animated Parabola Comparison Curve and Shaded Morph Divergence Ribbon
             val effectiveAlpha = animatedParabolaAlpha.coerceIn(0f, 1f)
             val effectiveBlend = animatedMorphProgress.coerceIn(0f, 1f)
