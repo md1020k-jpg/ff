@@ -16,9 +16,18 @@ import kotlin.math.cosh
 import kotlin.math.sinh
 
 enum class AppViewTab(val title: String) {
-    PLOT("Interactive Plot"),
-    PHYSICS("Catenary Physics"),
-    IDENTITIES("Identities & Theory")
+    PLOT("Plot"),
+    INSPECTOR("Inspector"),
+    PARABOLA("Parabola"),
+    ENGINEERING("Cable Eng"),
+    PHYSICS("Physics"),
+    IDENTITIES("Identities")
+}
+
+enum class SidebarSectionTab(val title: String) {
+    POINT_INSPECTOR("Point Inspector"),
+    CATENARY_SIMULATOR("Catenary Physics Simulator"),
+    CALCULUS_REFERENCE("Calculus Reference")
 }
 
 data class HyperbolicUiState(
@@ -30,6 +39,7 @@ data class HyperbolicUiState(
     val scrubX: Double = 0.0,  // Default inspect coordinate
     val selectedPreset: GraphPreset = GraphPreset.SHOW_ALL,
     val selectedTab: AppViewTab = AppViewTab.PLOT,
+    val selectedSidebarTab: SidebarSectionTab = SidebarSectionTab.POINT_INSPECTOR,
     val showGrid: Boolean = true,
     val showAsymptotes: Boolean = true,
     val showYEqualsX: Boolean = false,
@@ -196,6 +206,10 @@ class HyperbolicViewModel : ViewModel() {
 
     fun setSelectedTab(tab: AppViewTab) {
         _uiState.update { it.copy(selectedTab = tab) }
+    }
+
+    fun setSelectedSidebarTab(tab: SidebarSectionTab) {
+        _uiState.update { it.copy(selectedSidebarTab = tab) }
     }
 
     fun togglePanZoomMode() {
