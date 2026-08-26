@@ -1,5 +1,7 @@
 package com.example
 
+import android.app.Application
+import androidx.test.core.app.ApplicationProvider
 import com.example.model.CablePreset
 import com.example.model.CatenaryCalculation
 import com.example.model.HyperbolicFunc
@@ -9,9 +11,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import kotlin.math.cosh
 import kotlin.math.sinh
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ExampleUnitTest {
 
     @Test
@@ -100,7 +107,8 @@ class ExampleUnitTest {
 
     @Test
     fun testViewModelCatenaryCalculations() {
-        val vm = HyperbolicViewModel()
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val vm = HyperbolicViewModel(app)
 
         // Test default state calculation
         val initialCalc = vm.uiState.value.catenaryCalculation
@@ -166,7 +174,8 @@ class ExampleUnitTest {
 
     @Test
     fun testParabolaComparisonAndToggle() {
-        val vm = HyperbolicViewModel()
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val vm = HyperbolicViewModel(app)
         assertEquals(false, vm.uiState.value.showParabolaComparison)
 
         vm.toggleParabolaComparison()
@@ -192,6 +201,88 @@ class ExampleUnitTest {
         val coshLarge = cosh(4.0)
         val paraLarge = vm.evaluateParabola(4.0, ParabolaMode.STANDARD_X_SQUARED)
         assertTrue(coshLarge > paraLarge)
+    }
+
+    @Test
+    fun testPhysicsHandbookCurriculumCompleteness() {
+        val topics = com.example.model.PhysicsHandbookRepository.allTopics
+        assertTrue(topics.isNotEmpty())
+
+        // Check that all grades 6 to 12 are represented
+        com.example.model.PhysicsGrade.values().forEach { grade ->
+            val gradeTopics = topics.filter { it.grade == grade }
+            assertTrue("Class ${grade.displayName} must have topics", gradeTopics.isNotEmpty())
+        }
+
+        // Verify formulas and interactive calculators
+        val formulasWithCalculators = topics.flatMap { it.keyFormulas }.filter { it.canCalculate && it.calculateFn != null }
+        assertTrue("Expected multiple interactive formula calculators", formulasWithCalculators.size >= 10)
+
+        // Test an interactive calculator: Newton's second law F = m * a
+        val newtonTopic = topics.find { it.id == "c9_laws_of_motion" }
+        assertNotNull(newtonTopic)
+        val fEqualsMa = newtonTopic!!.keyFormulas.find { it.title.contains("Second Law") }
+        assertNotNull(fEqualsMa)
+        val calcFn = fEqualsMa!!.calculateFn
+        assertNotNull(calcFn)
+        val resultForce = calcFn!!.invoke(mapOf("Mass m (kg)" to 10.0, "Acceleration a (m/s²)" to 9.8))
+        assertEquals(98.0, resultForce, 1e-4)
+
+        // Test Ohm's law V = I * R
+        val ohmTopic = topics.find { it.id == "c10_electricity" }
+        assertNotNull(ohmTopic)
+        val ohmFormula = ohmTopic!!.keyFormulas.find { it.title.contains("Ohm") }
+        assertNotNull(ohmFormula)
+        val voltResult = ohmFormula!!.calculateFn?.invoke(mapOf("Current I (A)" to 2.5, "Resistance R (Ω)" to 10.0))
+        assertEquals(25.0, voltResult!!, 1e-4)
+    }
+
+    @Test
+    fun testMathHandbookCurriculumCompleteness() {
+        val topics = com.example.model.MathHandbookRepository.allTopics
+        assertTrue("Math handbook topics should not be empty", topics.isNotEmpty())
+
+        // Check that all grades 6 to 12 are represented
+        com.example.model.MathGrade.values().forEach { grade ->
+            val gradeTopics = topics.filter { it.grade == grade }
+            assertTrue("Class ${grade.displayName} must have math topics", gradeTopics.isNotEmpty())
+        }
+
+        // Check that key math branches are represented
+        com.example.model.MathBranch.values().forEach { branch ->
+            val branchTopics = topics.filter { it.branch == branch }
+            assertTrue("Math branch ${branch.displayName} must have topics", branchTopics.isNotEmpty())
+        }
+
+        // Verify formulas and interactive calculators
+        val formulasWithCalculators = topics.flatMap { it.keyFormulas }.filter { it.canCalculate && it.calculateFn != null }
+        assertTrue("Expected multiple interactive math formula calculators", formulasWithCalculators.size >= 10)
+
+        // Test an interactive calculator: Pythagoras theorem c = √(a² + b²)
+        val pythagorasTopic = topics.find { it.id == "m7_triangles_properties" }
+        assertNotNull(pythagorasTopic)
+        val pythagorasFormula = pythagorasTopic!!.keyFormulas.find { it.title.contains("Pythagoras") }
+        assertNotNull(pythagorasFormula)
+        val pythFn = pythagorasFormula!!.calculateFn
+        assertNotNull(pythFn)
+        val hypotenuse = pythFn!!.invoke(mapOf("Leg a" to 3.0, "Leg b" to 4.0))
+        assertEquals(5.0, hypotenuse, 1e-4)
+
+        // Test Heron's formula for a 3-4-5 right triangle: s = 6, area = √(6*3*2*1) = 6
+        val heronTopic = topics.find { it.id == "m9_herons_formula" }
+        assertNotNull(heronTopic)
+        val heronFormula = heronTopic!!.keyFormulas.find { it.title.contains("Heron") }
+        assertNotNull(heronFormula)
+        val heronArea = heronFormula!!.calculateFn?.invoke(mapOf("Side a" to 3.0, "Side b" to 4.0, "Side c" to 5.0))
+        assertEquals(6.0, heronArea!!, 1e-4)
+
+        // Test Simple Interest formula SI = (P * R * T) / 100
+        val siTopic = topics.find { it.id == "m7_commercial_math" }
+        assertNotNull(siTopic)
+        val siFormula = siTopic!!.keyFormulas.find { it.title.contains("Simple Interest") }
+        assertNotNull(siFormula)
+        val interest = siFormula!!.calculateFn?.invoke(mapOf("Principal P" to 1000.0, "Rate R (%)" to 5.0, "Time T (yrs)" to 2.0))
+        assertEquals(100.0, interest!!, 1e-4)
     }
 }
 

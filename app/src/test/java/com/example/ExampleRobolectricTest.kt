@@ -59,7 +59,8 @@ class ExampleRobolectricTest {
 
   @Test
   fun `verify theme toggling`() {
-    val viewModel = com.example.ui.HyperbolicViewModel()
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val viewModel = com.example.ui.HyperbolicViewModel(context)
     assertEquals(false, viewModel.uiState.value.isDarkTheme)
     viewModel.toggleTheme()
     assertEquals(true, viewModel.uiState.value.isDarkTheme)
@@ -70,20 +71,13 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `verify gemini chat state and model selection`() {
-    val viewModel = com.example.ui.HyperbolicViewModel()
-    assertEquals(com.example.data.GeminiModelChoice.FLASH_SEARCH, viewModel.uiState.value.selectedGeminiModel)
-    assertEquals(true, viewModel.uiState.value.isSearchGroundingEnabled)
-    assertEquals(1, viewModel.uiState.value.chatMessages.size)
-
-    viewModel.selectGeminiModel(com.example.data.GeminiModelChoice.PRO_MATH)
-    assertEquals(com.example.data.GeminiModelChoice.PRO_MATH, viewModel.uiState.value.selectedGeminiModel)
-
-    viewModel.toggleSearchGrounding(false)
-    assertEquals(false, viewModel.uiState.value.isSearchGroundingEnabled)
-
-    viewModel.clearChat()
-    assertEquals(1, viewModel.uiState.value.chatMessages.size)
+  fun `verify local notes storage operations`() {
+    val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val viewModel = com.example.ui.HyperbolicViewModel(context)
+    viewModel.setSelectedTab(com.example.ui.AppViewTab.NOTES)
+    assertEquals(com.example.ui.AppViewTab.NOTES, viewModel.uiState.value.selectedTab)
+    viewModel.saveTextNote("Calculus Note", "y = cosh(x)", "Calculus")
+    assertNotNull(viewModel.uiState.value.savedNotes)
   }
 }
 

@@ -30,16 +30,20 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Tune
+import com.example.ui.components.MathHandbookSection
 import com.example.ui.components.NumericalDifferentiationCard
+import com.example.ui.components.PhysicsHandbookSection
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -79,10 +83,10 @@ import com.example.R
 import com.example.model.GraphPreset
 import com.example.ui.components.CatenaryDemoCard
 import com.example.ui.components.FunctionSelectorSection
-import com.example.ui.components.GeminiChatSection
 import com.example.ui.components.HyperbolicCalculusDerivationCard
 import com.example.ui.components.HyperbolicPlotCanvas
 import com.example.ui.components.IdentitiesDialog
+import com.example.ui.components.NotesTabSection
 import com.example.ui.components.NumericalSolverCard
 import com.example.ui.components.ParabolaComparisonCard
 import com.example.ui.components.PointInspectorCard
@@ -179,19 +183,6 @@ fun HyperbolicScreen(
                         Icon(
                             imageVector = Icons.Default.Calculate,
                             contentDescription = "Numerical Solver",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            viewModel.setSelectedTab(AppViewTab.AI_CHAT)
-                            viewModel.setSelectedSidebarTab(SidebarSectionTab.GEMINI_AI)
-                        },
-                        modifier = Modifier.testTag("open_gemini_chat_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Gemini AI Assistant",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -330,13 +321,15 @@ fun HyperbolicScreen(
                                     when (tab) {
                                         AppViewTab.PLOT -> Icon(Icons.Default.ShowChart, contentDescription = null)
                                         AppViewTab.INSPECTOR -> Icon(Icons.Default.TouchApp, contentDescription = null)
+                                        AppViewTab.MATH_HANDBOOK -> Icon(Icons.Default.Functions, contentDescription = null)
+                                        AppViewTab.PHYSICS_HANDBOOK -> Icon(Icons.Default.School, contentDescription = null)
                                         AppViewTab.DIFFERENTIATION -> Icon(Icons.Default.Timeline, contentDescription = null)
                                         AppViewTab.PARABOLA -> Icon(Icons.Default.CompareArrows, contentDescription = null)
                                         AppViewTab.ENGINEERING -> Icon(Icons.Default.Tune, contentDescription = null)
                                         AppViewTab.PHYSICS -> Icon(Icons.Default.Architecture, contentDescription = null)
-                                        AppViewTab.IDENTITIES -> Icon(Icons.Default.Functions, contentDescription = null)
+                                        AppViewTab.IDENTITIES -> Icon(Icons.Default.AutoAwesome, contentDescription = null)
                                         AppViewTab.NUMERICAL_SOLVER -> Icon(Icons.Default.Calculate, contentDescription = null)
-                                        AppViewTab.AI_CHAT -> Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                                        AppViewTab.NOTES -> Icon(Icons.Default.MenuBook, contentDescription = null)
                                     }
                                 },
                                 modifier = Modifier.testTag("tab_${tab.name.lowercase(Locale.ROOT)}")
@@ -355,6 +348,16 @@ fun HyperbolicScreen(
                             InspectorTabView(
                                 uiState = uiState,
                                 viewModel = viewModel
+                            )
+                        }
+                        AppViewTab.MATH_HANDBOOK -> {
+                            MathHandbookSection(
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        AppViewTab.PHYSICS_HANDBOOK -> {
+                            PhysicsHandbookSection(
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                         AppViewTab.DIFFERENTIATION -> {
@@ -397,8 +400,7 @@ fun HyperbolicScreen(
                                     onToggleShowTangentLine = { viewModel.toggleShowDiffTangentLine(it) },
                                     onToggleShowNormalLine = { viewModel.toggleShowDiffNormalLine(it) },
                                     onScrubXChange = { viewModel.setScrubX(it) },
-                                    onApplyPreset = { viewModel.applyDifferentiationPreset(it) },
-                                    onAskGeminiAboutDerivative = { expr, diag -> viewModel.askGeminiAboutDerivative(expr, diag) }
+                                    onApplyPreset = { viewModel.applyDifferentiationPreset(it) }
                                 )
                             }
                         }
@@ -453,22 +455,26 @@ fun HyperbolicScreen(
                                     onInspectRoot = {
                                         viewModel.inspectSolvedRoot(it)
                                         viewModel.setSelectedTab(AppViewTab.PLOT)
-                                    },
-                                    onAskGeminiAboutSolution = { desc, roots -> viewModel.askGeminiAboutSolution(desc, roots) }
+                                    }
                                 )
                             }
                         }
-                        AppViewTab.AI_CHAT -> {
-                            GeminiChatSection(
-                                chatMessages = uiState.chatMessages,
-                                isGenerating = uiState.isGeneratingChatResponse,
-                                selectedModel = uiState.selectedGeminiModel,
-                                isSearchGroundingEnabled = uiState.isSearchGroundingEnabled,
-                                onSendMessage = { viewModel.sendChatMessage(it) },
-                                onSelectModel = { viewModel.selectGeminiModel(it) },
-                                onToggleSearchGrounding = { viewModel.toggleSearchGrounding(it) },
-                                onClearChat = { viewModel.clearChat() },
-                                onSendCurrentAppContext = { viewModel.sendCurrentAppContextToChat() },
+                        AppViewTab.NOTES -> {
+                            NotesTabSection(
+                                notes = uiState.savedNotes,
+                                onSaveCameraNote = { bitmap, title, content, category ->
+                                    viewModel.saveCameraNote(bitmap, title, content, category)
+                                },
+                                onSaveFileNote = { uri, title, content, category ->
+                                    viewModel.saveFileNote(uri, title, content, category)
+                                },
+                                onSaveTextNote = { title, content, category ->
+                                    viewModel.saveTextNote(title, content, category)
+                                },
+                                onUpdateNote = { viewModel.updateNote(it) },
+                                onDeleteNote = { viewModel.deleteNote(it) },
+                                onTogglePin = { viewModel.togglePinNote(it) },
+                                onLoadSampleNotes = { viewModel.loadSampleNotes() },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -517,12 +523,14 @@ fun SidebarTabbedPanel(
                         text = {
                             Text(
                                 text = when (tab) {
+                                    SidebarSectionTab.MATH_HANDBOOK -> "Math 6-12"
+                                    SidebarSectionTab.PHYSICS_HANDBOOK -> "Physics 6-12"
                                     SidebarSectionTab.POINT_INSPECTOR -> "Point Inspector"
                                     SidebarSectionTab.DIFFERENTIATION -> "Derivatives"
                                     SidebarSectionTab.NUMERICAL_SOLVER -> "Numerical Solver"
                                     SidebarSectionTab.CATENARY_SIMULATOR -> "Catenary Physics"
                                     SidebarSectionTab.CALCULUS_REFERENCE -> "Calculus"
-                                    SidebarSectionTab.GEMINI_AI -> "Gemini AI"
+                                    SidebarSectionTab.SAVED_NOTES -> "Study Notes"
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -532,12 +540,14 @@ fun SidebarTabbedPanel(
                         icon = {
                             Icon(
                                 imageVector = when (tab) {
+                                    SidebarSectionTab.MATH_HANDBOOK -> Icons.Default.Functions
+                                    SidebarSectionTab.PHYSICS_HANDBOOK -> Icons.Default.School
                                     SidebarSectionTab.POINT_INSPECTOR -> Icons.Default.TouchApp
                                     SidebarSectionTab.DIFFERENTIATION -> Icons.Default.Timeline
                                     SidebarSectionTab.NUMERICAL_SOLVER -> Icons.Default.Calculate
                                     SidebarSectionTab.CATENARY_SIMULATOR -> Icons.Default.Architecture
-                                    SidebarSectionTab.CALCULUS_REFERENCE -> Icons.Default.Functions
-                                    SidebarSectionTab.GEMINI_AI -> Icons.Default.AutoAwesome
+                                    SidebarSectionTab.CALCULUS_REFERENCE -> Icons.Default.AutoAwesome
+                                    SidebarSectionTab.SAVED_NOTES -> Icons.Default.MenuBook
                                 },
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
@@ -549,19 +559,28 @@ fun SidebarTabbedPanel(
             }
 
             // Tab Content
-            if (uiState.selectedSidebarTab == SidebarSectionTab.GEMINI_AI) {
-                GeminiChatSection(
-                    chatMessages = uiState.chatMessages,
-                    isGenerating = uiState.isGeneratingChatResponse,
-                    selectedModel = uiState.selectedGeminiModel,
-                    isSearchGroundingEnabled = uiState.isSearchGroundingEnabled,
-                    onSendMessage = { viewModel.sendChatMessage(it) },
-                    onSelectModel = { viewModel.selectGeminiModel(it) },
-                    onToggleSearchGrounding = { viewModel.toggleSearchGrounding(it) },
-                    onClearChat = { viewModel.clearChat() },
-                    onSendCurrentAppContext = { viewModel.sendCurrentAppContextToChat() },
+            if (uiState.selectedSidebarTab == SidebarSectionTab.SAVED_NOTES) {
+                NotesTabSection(
+                    notes = uiState.savedNotes,
+                    onSaveCameraNote = { bitmap, title, content, category ->
+                        viewModel.saveCameraNote(bitmap, title, content, category)
+                    },
+                    onSaveFileNote = { uri, title, content, category ->
+                        viewModel.saveFileNote(uri, title, content, category)
+                    },
+                    onSaveTextNote = { title, content, category ->
+                        viewModel.saveTextNote(title, content, category)
+                    },
+                    onUpdateNote = { viewModel.updateNote(it) },
+                    onDeleteNote = { viewModel.deleteNote(it) },
+                    onTogglePin = { viewModel.togglePinNote(it) },
+                    onLoadSampleNotes = { viewModel.loadSampleNotes() },
                     modifier = Modifier.fillMaxSize()
                 )
+            } else if (uiState.selectedSidebarTab == SidebarSectionTab.MATH_HANDBOOK) {
+                MathHandbookSection(modifier = Modifier.fillMaxSize())
+            } else if (uiState.selectedSidebarTab == SidebarSectionTab.PHYSICS_HANDBOOK) {
+                PhysicsHandbookSection(modifier = Modifier.fillMaxSize())
             } else {
                 Box(
                     modifier = Modifier
@@ -611,8 +630,7 @@ fun SidebarTabbedPanel(
                                 onToggleShowTangentLine = { viewModel.toggleShowDiffTangentLine(it) },
                                 onToggleShowNormalLine = { viewModel.toggleShowDiffNormalLine(it) },
                                 onScrubXChange = { viewModel.setScrubX(it) },
-                                onApplyPreset = { viewModel.applyDifferentiationPreset(it) },
-                                onAskGeminiAboutDerivative = { expr, diag -> viewModel.askGeminiAboutDerivative(expr, diag) }
+                                onApplyPreset = { viewModel.applyDifferentiationPreset(it) }
                             )
                         }
                         SidebarSectionTab.NUMERICAL_SOLVER -> {
@@ -635,8 +653,7 @@ fun SidebarTabbedPanel(
                                 onToleranceChange = { viewModel.setSolverTolerance(it) },
                                 onSolve = { viewModel.solveEquation() },
                                 onApplyPreset = { viewModel.applySolverPreset(it) },
-                                onInspectRoot = { viewModel.inspectSolvedRoot(it) },
-                                onAskGeminiAboutSolution = { desc, roots -> viewModel.askGeminiAboutSolution(desc, roots) }
+                                onInspectRoot = { viewModel.inspectSolvedRoot(it) }
                             )
                         }
                         SidebarSectionTab.CATENARY_SIMULATOR -> {
@@ -683,7 +700,9 @@ fun SidebarTabbedPanel(
                                 CalculusReferenceFormulasCard()
                             }
                         }
-                        SidebarSectionTab.GEMINI_AI -> { /* Handled above */ }
+                        SidebarSectionTab.SAVED_NOTES,
+                        SidebarSectionTab.MATH_HANDBOOK,
+                        SidebarSectionTab.PHYSICS_HANDBOOK -> { /* Handled above */ }
                     }
                 }
             }

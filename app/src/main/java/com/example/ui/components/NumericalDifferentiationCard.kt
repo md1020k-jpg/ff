@@ -103,7 +103,6 @@ fun NumericalDifferentiationCard(
     onToggleShowNormalLine: (Boolean) -> Unit,
     onScrubXChange: (Double) -> Unit,
     onApplyPreset: (DifferentiationPreset) -> Unit,
-    onAskGeminiAboutDerivative: (expr: String, diagnostics: CalculusPointDiagnostics?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var methodExpanded by remember { mutableStateOf(false) }
@@ -724,29 +723,6 @@ fun NumericalDifferentiationCard(
                         }
                     }
                 }
-            }
-
-            // Ask Gemini AI Button for Step-by-Step Calculus Derivation
-            Button(
-                onClick = { onAskGeminiAboutDerivative(functionExpr, diagnostics) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("ask_gemini_diff_button"),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Ask Gemini AI to Differentiate & Prove",
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
     }

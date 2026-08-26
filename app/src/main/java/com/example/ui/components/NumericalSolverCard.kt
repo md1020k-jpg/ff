@@ -123,7 +123,6 @@ fun NumericalSolverCard(
     onSolve: () -> Unit,
     onApplyPreset: (EquationSolverPreset) -> Unit,
     onInspectRoot: (Double) -> Unit,
-    onAskGeminiAboutSolution: (String, List<SolvedPoint>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -772,40 +771,6 @@ fun NumericalSolverCard(
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                                 )
-                            }
-
-                            if (solverResult.roots.isNotEmpty()) {
-                                Surface(
-                                    onClick = {
-                                        onAskGeminiAboutSolution(
-                                            solverResult.equationDescription,
-                                            solverResult.roots
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.testTag("ask_gemini_solution_btn")
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.AutoAwesome,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Text(
-                                            text = "Explain with AI",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
                             }
                         }
                     }

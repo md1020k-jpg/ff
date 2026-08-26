@@ -58,7 +58,22 @@ jobs:
             echo "Successfully generated temporary debug.keystore."
           fi
 
+      - name: Prepare Environment & Secrets
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'AIzaSyBq8D0sALJCygxEju82MlE0ekHeEAuB7hQ' }}
+        run: |
+          if [ ! -f ".env" ]; then
+            echo "GEMINI_API_KEY=${GEMINI_API_KEY}" > .env
+          else
+            if ! grep -q "GEMINI_API_KEY=" .env; then
+              echo "GEMINI_API_KEY=${GEMINI_API_KEY}" >> .env
+            fi
+          fi
+          echo "Environment configuration ready."
+
       - name: Build Android APK
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'AIzaSyBq8D0sALJCygxEju82MlE0ekHeEAuB7hQ' }}
         run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Package & Prepare Release APKs

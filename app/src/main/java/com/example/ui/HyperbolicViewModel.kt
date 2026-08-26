@@ -1,11 +1,13 @@
 package com.example.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.ChatMessage
-import com.example.data.GeminiClient
-import com.example.data.GeminiModelChoice
-import com.example.data.MessageSender
+import com.example.data.local.AppDatabase
+import com.example.data.local.NoteEntity
+import com.example.data.local.NoteRepository
 import com.example.model.CablePreset
 import com.example.model.CatenaryCalculation
 import com.example.model.CatenaryCurvePoint
@@ -24,22 +26,26 @@ import kotlin.math.sinh
 enum class AppViewTab(val title: String) {
     PLOT("Plot"),
     INSPECTOR("Inspector"),
+    MATH_HANDBOOK("Math 6-12"),
+    PHYSICS_HANDBOOK("Physics 6-12"),
     DIFFERENTIATION("Derivatives"),
     PARABOLA("Parabola"),
     ENGINEERING("Cable Eng"),
-    PHYSICS("Physics"),
+    PHYSICS("Catenary"),
     IDENTITIES("Identities"),
     NUMERICAL_SOLVER("Solver"),
-    AI_CHAT("Gemini AI")
+    NOTES("Math Notes")
 }
 
 enum class SidebarSectionTab(val title: String) {
+    MATH_HANDBOOK("Mathematics (Class 6-12)"),
+    PHYSICS_HANDBOOK("Physics (Class 6-12)"),
     POINT_INSPECTOR("Point Inspector"),
     DIFFERENTIATION("Numerical Differentiation"),
     NUMERICAL_SOLVER("Numerical Solver"),
     CATENARY_SIMULATOR("Catenary Physics Simulator"),
     CALCULUS_REFERENCE("Calculus Reference"),
-    GEMINI_AI("Gemini Chat & Search")
+    SAVED_NOTES("Study Notes & Storage")
 }
 
 data class HyperbolicUiState(
@@ -92,18 +98,8 @@ data class HyperbolicUiState(
         linearMassDensityKgPerM = 1.5
     ),
     val selectedCablePreset: CablePreset? = CablePreset.HIGH_VOLTAGE_POWER_LINE,
-    // Gemini Chatbot & Search Grounding State
-    val chatMessages: List<ChatMessage> = listOf(
-        ChatMessage(
-            sender = MessageSender.AI,
-            text = "Welcome to Hyperbolic & Catenary AI Studio! I am your mathematical reasoning, calculus proof, and catenary physics specialist.\n\nAsk me any question about hyperbolic identities, derivatives, definite integrals, or use real-time Google Search Grounding to explore architectural structures like the Gateway Arch and suspension bridges.",
-            modelName = "Gemini 3.5 Flash",
-            isSearchGrounded = false
-        )
-    ),
-    val isGeneratingChatResponse: Boolean = false,
-    val selectedGeminiModel: GeminiModelChoice = GeminiModelChoice.FLASH_SEARCH,
-    val isSearchGroundingEnabled: Boolean = true
+    // Saved Math & Physics Notes State (Persistent Room Storage)
+    val savedNotes: List<NoteEntity> = emptyList()
 ) {
     // S = 2 * A * sinh(L / (2 * A))
     val arcLength: Double get() = 2.0 * paramA * sinh(spanL / (2.0 * paramA))
@@ -120,9 +116,24 @@ data class HyperbolicUiState(
     val towerY: Double get() = paramA * cosh(spanL / (2.0 * paramA))
 }
 
-class HyperbolicViewModel : ViewModel() {
+class HyperbolicViewModel(application: Application) : AndroidViewModel(application) {
+    private val noteRepository = NoteRepository(
+        noteDao = AppDatabase.getDatabase(application).noteDao(),
+        context = application
+    )
+
     private val _uiState = MutableStateFlow(HyperbolicUiState())
     val uiState: StateFlow<HyperbolicUiState> = _uiState.asStateFlow()
+
+    init {
+        // Observe persistent Room notes reactively
+        viewModelScope.launch {
+            noteRepository.populateSampleNotesIfEmpty()
+            noteRepository.allNotes.collect { notesList ->
+                _uiState.update { it.copy(savedNotes = notesList) }
+            }
+        }
+    }
 
     fun toggleFunction(func: HyperbolicFunc) {
         _uiState.update { current ->
@@ -390,102 +401,6 @@ class HyperbolicViewModel : ViewModel() {
         return _uiState.value.catenaryCalculation.sampleCurvePoints(stepCount)
     }
 
-    // =========================================================================
-    // Gemini Chatbot & Google Search Grounding Engine
-    // =========================================================================
-
-    fun selectGeminiModel(choice: GeminiModelChoice) {
-        _uiState.update { it.copy(selectedGeminiModel = choice) }
-    }
-
-    fun toggleSearchGrounding(enabled: Boolean) {
-        _uiState.update { it.copy(isSearchGroundingEnabled = enabled) }
-    }
-
-    fun clearChat() {
-        _uiState.update {
-            it.copy(
-                chatMessages = listOf(
-                    ChatMessage(
-                        sender = MessageSender.AI,
-                        text = "Chat history cleared. How can I assist you with hyperbolic math, calculus, or catenary physics today?",
-                        modelName = it.selectedGeminiModel.displayName,
-                        isSearchGrounded = false
-                    )
-                )
-            )
-        }
-    }
-
-    fun sendChatMessage(promptText: String) {
-        val trimmed = promptText.trim()
-        if (trimmed.isBlank() || _uiState.value.isGeneratingChatResponse) return
-
-        val userMessage = ChatMessage(
-            sender = MessageSender.USER,
-            text = trimmed
-        )
-
-        _uiState.update { current ->
-            current.copy(
-                chatMessages = current.chatMessages + userMessage,
-                isGeneratingChatResponse = true
-            )
-        }
-
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            val history = currentState.chatMessages.dropLast(1) // exclude current user message from history argument since sendChatMessage adds it
-            val result = GeminiClient.sendChatMessage(
-                conversationHistory = history,
-                userMessage = trimmed,
-                modelChoice = currentState.selectedGeminiModel,
-                enableSearchGrounding = currentState.isSearchGroundingEnabled
-            )
-
-            result.onSuccess { aiMsg ->
-                _uiState.update { current ->
-                    current.copy(
-                        chatMessages = current.chatMessages + aiMsg,
-                        isGeneratingChatResponse = false
-                    )
-                }
-            }.onFailure { error ->
-                val errorMsg = ChatMessage(
-                    sender = MessageSender.AI,
-                    text = "⚠️ Gemini Request Notice: ${error.message ?: "Unable to complete request"}\n\nTip: You can configure your Gemini API Key in the AI Studio Secrets panel.",
-                    modelName = currentState.selectedGeminiModel.displayName,
-                    isError = true
-                )
-                _uiState.update { current ->
-                    current.copy(
-                        chatMessages = current.chatMessages + errorMsg,
-                        isGeneratingChatResponse = false
-                    )
-                }
-            }
-        }
-    }
-
-    fun sendCurrentAppContextToChat() {
-        val state = _uiState.value
-        val activeFuncNames = state.activeFunctions.joinToString(", ") { it.displayName }
-        val scrubY = state.activeFunctions.firstOrNull()?.evaluate(state.scrubX, state.paramA, state.shiftC) ?: 0.0
-        val catenary = state.catenaryCalculation
-
-        val contextPrompt = """
-            Please analyze my current workspace in Hyperbolic & Catenary Studio:
-            - Active Hyperbolic Functions: $activeFuncNames
-            - Parameters: Amplitude A = ${state.paramA}, Shift c = ${state.shiftC}, Span L = ${state.spanL}
-            - Inspected Coordinate: x = ${String.format(java.util.Locale.US, "%.2f", state.scrubX)}, f(x) = ${String.format(java.util.Locale.US, "%.3f", scrubY)}
-            - Real-World Catenary Cable Setup: Span L = ${catenary.spanM} m, Tension T₀ = ${catenary.horizontalTensionN} N, Linear density μ = ${catenary.linearMassDensityKgPerM} kg/m, Parameter a = ${String.format(java.util.Locale.US, "%.2f", catenary.parameterA)}, Max Sag = ${String.format(java.util.Locale.US, "%.2f", catenary.maxSagM)} m, Arc Length S = ${String.format(java.util.Locale.US, "%.2f", catenary.arcLengthM)} m.
-            
-            Can you provide an intuitive mathematical summary of these values, verify the tension and sag physics, and cite any real-world architectural or power-transmission structures with comparable dimensions?
-        """.trimIndent()
-
-        sendChatMessage(contextPrompt)
-    }
-
     // ==========================================
     // Numerical Solver Actions
     // ==========================================
@@ -560,33 +475,6 @@ class HyperbolicViewModel : ViewModel() {
         }
     }
 
-    fun askGeminiAboutSolution(equationDesc: String, roots: List<com.example.model.SolvedPoint>) {
-        val rootsSummary = if (roots.isEmpty()) {
-            "No real roots found in domain."
-        } else {
-            roots.mapIndexed { idx, pt ->
-                "#${idx + 1}: x* = ${pt.formattedX}, y* = ${pt.formattedY} (residual |f(x*)| = ${pt.formattedResidual}, converged in ${pt.iterationsCount} iterations via ${pt.methodUsed.displayName})"
-            }.joinToString("\n")
-        }
-
-        val prompt = """
-            I just used the Numerical Solver to solve the following equation:
-            $equationDesc
-            
-            Discovered Numerical Solutions:
-            $rootsSummary
-            
-            Can you provide:
-            1. An analytical or symbolic solution/derivation (e.g. using logarithmic forms of inverse hyperbolic functions like arcosh, arsinh, artanh).
-            2. An intuitive geometric explanation of why the roots/intersections occur at these exact coordinates.
-            3. Any relevant physical or engineering implications of this equation (e.g., in catenary sag, cable tension, or structural arches).
-        """.trimIndent()
-
-        setSelectedTab(AppViewTab.AI_CHAT)
-        setSelectedSidebarTab(SidebarSectionTab.GEMINI_AI)
-        sendChatMessage(prompt)
-    }
-
     fun setDiffFunctionExpr(expr: String) {
         val (parsed, error) = try {
             val p = com.example.model.Expression(expr)
@@ -650,36 +538,79 @@ class HyperbolicViewModel : ViewModel() {
         applyDiffPreset(preset)
     }
 
-    fun askGeminiAboutDerivative(expr: String, diagnostics: com.example.model.CalculusPointDiagnostics?) {
-        val diagSummary = if (diagnostics != null) {
-            """
-            Current Live Evaluation at x₀ = ${diagnostics.formattedX0}:
-            - Function value f(x₀) = ${diagnostics.formattedFx0}
-            - 1st Derivative f'(x₀) = ${diagnostics.formattedFPrime0} (Slope angle: ${diagnostics.formattedSlopeAngle})
-            - 2nd Derivative f''(x₀) = ${diagnostics.formattedFDoublePrime0} (${diagnostics.concavity.displayName})
-            - Tangent Line Equation: ${diagnostics.tangentEquation}
-            - Normal Line Equation: ${diagnostics.normalEquation}
-            - Radius of Curvature: ${diagnostics.formattedRadiusOfCurvature}
-            """.trimIndent()
-        } else {
-            "Numerical diagnostics unavailable for this expression."
+    // ==========================================
+    // Local Room Notes Storage Operations
+    // ==========================================
+
+    fun saveCameraNote(
+        bitmap: Bitmap,
+        title: String,
+        content: String,
+        category: String
+    ) {
+        viewModelScope.launch {
+            noteRepository.saveCameraNote(
+                bitmap = bitmap,
+                title = title,
+                content = content,
+                category = category
+            )
         }
+    }
 
-        val prompt = """
-            I am analyzing the function f(x) = $expr using the Numerical Differentiation tool.
-            
-            $diagSummary
-            
-            Can you provide:
-            1. The exact symbolic derivative f'(x) = d/dx[$expr] with step-by-step calculus derivation (showing chain rule, product rule, quotient rule, or hyperbolic derivative identities).
-            2. The second derivative f''(x) = d²/dx²[$expr] and an analysis of its concavity and inflection points where f''(x) = 0.
-            3. Comparison between the analytical limit definition lim_{h->0} (f(x+h) - f(x))/h and numerical finite difference stencils (such as the 5-point central stencil).
-            4. Practical physical or geometric interpretation (such as curve slope, tangent lines, velocity/acceleration, or wave dispersion).
-        """.trimIndent()
+    fun saveFileNote(
+        uri: Uri,
+        title: String,
+        content: String,
+        category: String
+    ) {
+        viewModelScope.launch {
+            noteRepository.saveImportedFileNote(
+                uri = uri,
+                title = title,
+                content = content,
+                category = category
+            )
+        }
+    }
 
-        setSelectedTab(AppViewTab.AI_CHAT)
-        setSelectedSidebarTab(SidebarSectionTab.GEMINI_AI)
-        sendChatMessage(prompt)
+    fun saveTextNote(
+        title: String,
+        content: String,
+        category: String
+    ) {
+        viewModelScope.launch {
+            noteRepository.insertTextNote(
+                title = title,
+                content = content,
+                category = category
+            )
+        }
+    }
+
+    fun updateNote(note: NoteEntity) {
+        viewModelScope.launch {
+            noteRepository.updateNote(note)
+        }
+    }
+
+    fun deleteNote(note: NoteEntity) {
+        viewModelScope.launch {
+            noteRepository.deleteNote(note)
+        }
+    }
+
+    fun togglePinNote(id: Long) {
+        viewModelScope.launch {
+            noteRepository.togglePin(id)
+        }
+    }
+
+    fun loadSampleNotes() {
+        viewModelScope.launch {
+            noteRepository.populateSampleNotesIfEmpty()
+        }
     }
 }
+
 

@@ -1,6 +1,6 @@
 {
   "name": "Hyperbolic & Catenary Studio",
-  "description": "Interactive hyperbolic function grapher, numerical equation root finder, catenary cable physics simulator, and Gemini AI math assistant.",
+  "description": "Interactive hyperbolic function grapher, physics & mathematics handbooks (Class 6-12 formulas and identities), numerical equation root finder, and study notes.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
